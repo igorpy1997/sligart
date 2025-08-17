@@ -1,0 +1,50 @@
+{$NGROK_DOMAIN}:80 {
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Max-Age "86400"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # ВАЖНО: Сначала обрабатываем API запросы!
+    handle /api/* {
+        reverse_proxy {$BACKEND_URL} {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Health и docs endpoints
+    handle /health {
+        reverse_proxy {$BACKEND_URL}
+    }
+
+    handle /docs {
+        reverse_proxy {$BACKEND_URL}
+    }
+
+    handle /openapi.json {
+        reverse_proxy {$BACKEND_URL}
+    }
+
+    # А теперь все остальное - это фронтенд
+    handle {
+        root * /usr/share/caddy/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    encode {
+        gzip 6
+        minimum_length 1000
+    }
+}

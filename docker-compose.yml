@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:17.5
+    environment:
+      POSTGRES_DB: sligart
+      POSTGRES_USER: ihor
+      POSTGRES_PASSWORD: 1997
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./psql/data:/var/lib/postgresql/data
+    restart: always
+
+  server:
+    build:
+      context: app/server
+      dockerfile: Dockerfile
+    env_file: .env
+    # Убираем порты - доступ только через Caddy
+    expose:
+      - "8000"
+    depends_on:
+      - postgres
+    user: server
+    restart: always
+    volumes:
+      - ./app/server/media:/app/media
+    entrypoint: [ ".venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
+
+  # Caddy веб-сервер с автоматическим HTTPS
+  caddy:
+    image: caddy:2.8-alpine
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+      - ./frontend/sligart-ui/build:/usr/share/caddy/frontend:ro
+    depends_on:
+      - server
+    restart: always
+    environment:
+      - NGROK_DOMAIN=${NGROK_DOMAIN:-localhost}
+      - BACKEND_URL=http://server:8000
+
+  migrations:
+    # Do not run this container directly. Use `make` to run migrations.
+    build:
+      context: app/migrations
+      dockerfile: Dockerfile
+    env_file: .env.docker
+    user: migrator
+    stop_signal: SIGINT
+    volumes:
+      - ./app/migrations/versions:/app/versions
+      - ./app/server/settings.py:/app/settings.py:ro
+      - ./app/server/storages/psql:/app/storages/psql:ro
+    depends_on:
+      - postgres
+    restart: always
