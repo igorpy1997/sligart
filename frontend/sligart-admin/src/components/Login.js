@@ -1,4 +1,4 @@
-// frontend/sligart-ui/src/components/Login.js
+// frontend/sligart-admin/src/components/Login.js
 import React, { useState } from 'react';
 import { useLogin, useNotify, Notification } from 'react-admin';
 import {
@@ -9,8 +9,7 @@ import {
     Button,
     CircularProgress,
     Box,
-    Typography,
-    Alert
+    Typography
 } from '@mui/material';
 
 const Login = () => {
@@ -25,6 +24,10 @@ const Login = () => {
         setLoading(true);
 
         login({ username, password })
+            .then(() => {
+                // Успешный логин - React Admin автоматически перенаправит
+                setLoading(false);
+            })
             .catch(() => {
                 setLoading(false);
                 notify('Invalid username or password', { type: 'error' });
@@ -75,15 +78,6 @@ const Login = () => {
                                 required
                             />
                         </Box>
-
-                        {/* Test credentials hint */}
-                        <Alert severity="info" sx={{ mt: 2 }}>
-                            <Typography variant="caption">
-                                Test credentials:<br />
-                                Username: admin<br />
-                                Password: your_password
-                            </Typography>
-                        </Alert>
                     </CardContent>
 
                     <CardActions sx={{ justifyContent: 'center', pb: 2 }}>

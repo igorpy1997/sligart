@@ -15,7 +15,11 @@
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 
-    # ВАЖНО: Сначала обрабатываем API запросы!
+    # САМОЕ ПЕРВОЕ - редирект с /admin на /admin/
+    @admin path /admin
+    redir @admin /admin/ 301
+
+    # API запросы
     handle /api/* {
         reverse_proxy {$BACKEND_URL} {
             header_up Host {host}
@@ -44,7 +48,7 @@
     }
 
     # Основной фронт на корне
-    handle /* {
+    handle {
         root * /usr/share/caddy/frontend
         try_files {path} /index.html
         file_server
