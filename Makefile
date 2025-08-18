@@ -2,10 +2,11 @@ include .env
 export
 
 app-dir = app
-frontend-dir = frontend/sligart-ui  # Добавь полный путь!
+frontend-dir = frontend/frontend-app
+admin-dir = frontend/sligart-admin
 
 .PHONY: up
-up: frontend-build
+up: frontend-build admin-build
 	docker compose --env-file .env -f docker-compose.yml up -d --build --timeout 60
 
 .PHONY: down
@@ -16,7 +17,7 @@ down:
 build:
 	docker compose --env-file .env -f docker-compose.yml build migrations server
 
-# Команды для фронтенда
+# Команды для основного фронтенда
 .PHONY: frontend-install
 frontend-install:
 	@echo "📦 Installing frontend dependencies..."
@@ -31,7 +32,7 @@ frontend-build: frontend-install
 .PHONY: frontend-dev
 frontend-dev: frontend-install
 	@echo "🚀 Starting frontend dev server..."
-	cd $(frontend-dir) && npm run dev
+	cd $(frontend-dir) && npm start
 
 .PHONY: frontend-clean
 frontend-clean:
@@ -39,9 +40,53 @@ frontend-clean:
 	rm -rf $(frontend-dir)/build
 	rm -rf $(frontend-dir)/node_modules
 
+# Команды для админки
+.PHONY: admin-install
+admin-install:
+	@echo "📦 Installing admin dependencies..."
+	cd $(admin-dir) && npm install
+
+.PHONY: admin-build
+admin-build: admin-install
+	@echo "🔨 Building admin..."
+	cd $(admin-dir) && npm run build
+	@echo "✅ Admin built successfully!"
+
+.PHONY: admin-dev
+admin-dev: admin-install
+	@echo "🚀 Starting admin dev server..."
+	cd $(admin-dir) && npm start
+
+.PHONY: admin-clean
+admin-clean:
+	@echo "🧹 Cleaning admin build..."
+	rm -rf $(admin-dir)/build
+	rm -rf $(admin-dir)/node_modules
+
+# Команды для обоих фронтов
+.PHONY: frontend-install-all
+frontend-install-all: frontend-install admin-install
+	@echo "✅ All frontend dependencies installed!"
+
+.PHONY: frontend-build-all
+frontend-build-all: frontend-build admin-build
+	@echo "✅ All frontends built successfully!"
+
+.PHONY: frontend-dev-all
+frontend-dev-all:
+	@echo "🚀 Starting both dev servers..."
+	@echo "Frontend will be on :3000, Admin on :3001"
+	(cd $(frontend-dir) && PORT=3000 npm start) & \
+	(cd $(admin-dir) && PORT=3001 npm start) & \
+	wait
+
+.PHONY: frontend-clean-all
+frontend-clean-all: frontend-clean admin-clean
+	@echo "✅ All frontend builds cleaned!"
+
 # Полная пересборка всего
 .PHONY: rebuild
-rebuild: frontend-clean frontend-build build
+rebuild: frontend-clean-all frontend-build-all build
 	@echo "🎉 Full rebuild completed!"
 
 .PHONY: pull

@@ -38,7 +38,8 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy/data:/data
       - ./caddy/config:/config
-      - ./frontend/sligart-ui/build:/usr/share/caddy/frontend:ro
+      - ./frontend/frontend-app/build:/usr/share/caddy/frontend:ro
+      - ./frontend/sligart-admin/build:/usr/share/caddy/admin:ro
     depends_on:
       - server
     restart: always

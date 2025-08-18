@@ -36,8 +36,15 @@
         reverse_proxy {$BACKEND_URL}
     }
 
-    # А теперь все остальное - это фронтенд
-    handle {
+    # Админка на /admin/*
+    handle_path /admin/* {
+        root * /usr/share/caddy/admin
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Основной фронт на корне
+    handle /* {
         root * /usr/share/caddy/frontend
         try_files {path} /index.html
         file_server
