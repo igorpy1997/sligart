@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from datetime import datetime
 import json
 
-from dependencies import get_db_session
 from storages.psql.models.project_model import DBProjectModel
 
 router = APIRouter(prefix="/projects", tags=["admin-projects"])
@@ -84,88 +83,92 @@ async def get_projects(
         _end: int = Query(10),
         _sort: str = Query("id"),
         _order: str = Query("ASC"),
-        db: AsyncSession = Depends(get_db_session)
 ):
-    query = select(DBProjectModel)
+    async with request.app.state.db_session() as db:
+        query = select(DBProjectModel)
 
-    # Sorting
-    if hasattr(DBProjectModel, _sort):
-        if _order.upper() == "DESC":
-            query = query.order_by(getattr(DBProjectModel, _sort).desc())
-        else:
-            query = query.order_by(getattr(DBProjectModel, _sort))
+        # Sorting
+        if hasattr(DBProjectModel, _sort):
+            if _order.upper() == "DESC":
+                query = query.order_by(getattr(DBProjectModel, _sort).desc())
+            else:
+                query = query.order_by(getattr(DBProjectModel, _sort))
 
-    # Pagination
-    query = query.offset(_start).limit(_end - _start)
+        # Pagination
+        query = query.offset(_start).limit(_end - _start)
 
-    result = await db.execute(query)
-    projects = result.scalars().all()
+        result = await db.execute(query)
+        projects = result.scalars().all()
 
-    # Get total count
-    count_query = select(func.count(DBProjectModel.id))
-    count_result = await db.execute(count_query)
-    total = count_result.scalar()
+        # Get total count
+        count_query = select(func.count(DBProjectModel.id))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar()
 
-    # Convert to dicts
-    projects_data = [project_to_dict(project) for project in projects]
+        # Convert to dicts
+        projects_data = [project_to_dict(project) for project in projects]
 
-    return Response(
-        content=json.dumps(projects_data),
-        headers={"X-Total-Count": str(total)},
-        media_type="application/json"
-    )
+        return Response(
+            content=json.dumps(projects_data),
+            headers={"X-Total-Count": str(total)},
+            media_type="application/json"
+        )
 
 @router.get("/{project_id}")
-async def get_project(project_id: int, db: AsyncSession = Depends(get_db_session)):
-    query = select(DBProjectModel).where(DBProjectModel.id == project_id)
-    result = await db.execute(query)
-    project = result.scalar_one_or_none()
+async def get_project(project_id: int, request: Request):
+    async with request.app.state.db_session() as db:
+        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
+        result = await db.execute(query)
+        project = result.scalar_one_or_none()
 
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    return project_to_dict(project)
+        return project_to_dict(project)
 
 @router.post("")
-async def create_project(project: ProjectCreate, db: AsyncSession = Depends(get_db_session)):
-    db_project = DBProjectModel(**project.dict())
-    db.add(db_project)
-    await db.commit()
-    await db.refresh(db_project)
+async def create_project(project: ProjectCreate, request: Request):
+    async with request.app.state.db_session() as db:
+        db_project = DBProjectModel(**project.dict())
+        db.add(db_project)
+        await db.commit()
+        await db.refresh(db_project)
 
-    return project_to_dict(db_project)
+        return project_to_dict(db_project)
 
 @router.put("/{project_id}")
 async def update_project(
         project_id: int,
         project: ProjectUpdate,
-        db: AsyncSession = Depends(get_db_session)
+        request: Request
 ):
-    query = select(DBProjectModel).where(DBProjectModel.id == project_id)
-    result = await db.execute(query)
-    db_project = result.scalar_one_or_none()
+    async with request.app.state.db_session() as db:
+        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
+        result = await db.execute(query)
+        db_project = result.scalar_one_or_none()
 
-    if not db_project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if not db_project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    # Update fields
-    for field, value in project.dict(exclude_unset=True).items():
-        setattr(db_project, field, value)
+        # Update fields
+        for field, value in project.dict(exclude_unset=True).items():
+            setattr(db_project, field, value)
 
-    await db.commit()
-    await db.refresh(db_project)
-    return project_to_dict(db_project)
+        await db.commit()
+        await db.refresh(db_project)
+        return project_to_dict(db_project)
 
 @router.delete("/{project_id}")
-async def delete_project(project_id: int, db: AsyncSession = Depends(get_db_session)):
-    query = select(DBProjectModel).where(DBProjectModel.id == project_id)
-    result = await db.execute(query)
-    db_project = result.scalar_one_or_none()
+async def delete_project(project_id: int, request: Request):
+    async with request.app.state.db_session() as db:
+        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
+        result = await db.execute(query)
+        db_project = result.scalar_one_or_none()
 
-    if not db_project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if not db_project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    await db.delete(db_project)
-    await db.commit()
+        await db.delete(db_project)
+        await db.commit()
 
-    return {"message": "Project deleted"}
+        return {"message": "Project deleted"}

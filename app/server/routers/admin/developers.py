@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
@@ -6,11 +6,9 @@ from pydantic import BaseModel
 from datetime import datetime
 import json
 
-from dependencies import get_db_session
 from storages.psql.models.developer_model import DBDeveloperModel
 
 router = APIRouter(prefix="/developers", tags=["admin-developers"])
-
 
 
 # Pydantic схемы
@@ -85,88 +83,92 @@ async def get_developers(
         _end: int = Query(10),
         _sort: str = Query("id"),
         _order: str = Query("ASC"),
-        db: AsyncSession = Depends(get_db_session)
 ):
-    query = select(DBDeveloperModel)
+    async with request.app.state.db_session() as db:
+        query = select(DBDeveloperModel)
 
-    # Sorting
-    if hasattr(DBDeveloperModel, _sort):
-        if _order.upper() == "DESC":
-            query = query.order_by(getattr(DBDeveloperModel, _sort).desc())
-        else:
-            query = query.order_by(getattr(DBDeveloperModel, _sort))
+        # Sorting
+        if hasattr(DBDeveloperModel, _sort):
+            if _order.upper() == "DESC":
+                query = query.order_by(getattr(DBDeveloperModel, _sort).desc())
+            else:
+                query = query.order_by(getattr(DBDeveloperModel, _sort))
 
-    # Pagination
-    query = query.offset(_start).limit(_end - _start)
+        # Pagination
+        query = query.offset(_start).limit(_end - _start)
 
-    result = await db.execute(query)
-    developers = result.scalars().all()
+        result = await db.execute(query)
+        developers = result.scalars().all()
 
-    # Get total count
-    count_query = select(func.count(DBDeveloperModel.id))
-    count_result = await db.execute(count_query)
-    total = count_result.scalar()
+        # Get total count
+        count_query = select(func.count(DBDeveloperModel.id))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar()
 
-    # Convert to dicts
-    developers_data = [developer_to_dict(dev) for dev in developers]
+        # Convert to dicts
+        developers_data = [developer_to_dict(dev) for dev in developers]
 
-    return Response(
-        content=json.dumps(developers_data),
-        headers={"X-Total-Count": str(total)},
-        media_type="application/json"
-    )
+        return Response(
+            content=json.dumps(developers_data),
+            headers={"X-Total-Count": str(total)},
+            media_type="application/json"
+        )
 
 @router.get("/{developer_id}")
-async def get_developer(developer_id: int, db: AsyncSession = Depends(get_db_session)):
-    query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
-    result = await db.execute(query)
-    developer = result.scalar_one_or_none()
+async def get_developer(developer_id: int, request: Request):
+    async with request.app.state.db_session() as db:
+        query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
+        result = await db.execute(query)
+        developer = result.scalar_one_or_none()
 
-    if not developer:
-        raise HTTPException(status_code=404, detail="Developer not found")
+        if not developer:
+            raise HTTPException(status_code=404, detail="Developer not found")
 
-    return developer_to_dict(developer)
+        return developer_to_dict(developer)
 
 @router.post("")
-async def create_developer(developer: DeveloperCreate, db: AsyncSession = Depends(get_db_session)):
-    db_developer = DBDeveloperModel(**developer.dict())
-    db.add(db_developer)
-    await db.commit()
-    await db.refresh(db_developer)
+async def create_developer(developer: DeveloperCreate, request: Request):
+    async with request.app.state.db_session() as db:
+        db_developer = DBDeveloperModel(**developer.dict())
+        db.add(db_developer)
+        await db.commit()
+        await db.refresh(db_developer)
 
-    return developer_to_dict(db_developer)
+        return developer_to_dict(db_developer)
 
 @router.put("/{developer_id}")
 async def update_developer(
         developer_id: int,
         developer: DeveloperUpdate,
-        db: AsyncSession = Depends(get_db_session)
+        request: Request
 ):
-    query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
-    result = await db.execute(query)
-    db_developer = result.scalar_one_or_none()
+    async with request.app.state.db_session() as db:
+        query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
+        result = await db.execute(query)
+        db_developer = result.scalar_one_or_none()
 
-    if not db_developer:
-        raise HTTPException(status_code=404, detail="Developer not found")
+        if not db_developer:
+            raise HTTPException(status_code=404, detail="Developer not found")
 
-    # Update fields
-    for field, value in developer.dict(exclude_unset=True).items():
-        setattr(db_developer, field, value)
+        # Update fields
+        for field, value in developer.dict(exclude_unset=True).items():
+            setattr(db_developer, field, value)
 
-    await db.commit()
-    await db.refresh(db_developer)
-    return developer_to_dict(db_developer)
+        await db.commit()
+        await db.refresh(db_developer)
+        return developer_to_dict(db_developer)
 
 @router.delete("/{developer_id}")
-async def delete_developer(developer_id: int, db: AsyncSession = Depends(get_db_session)):
-    query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
-    result = await db.execute(query)
-    db_developer = result.scalar_one_or_none()
+async def delete_developer(developer_id: int, request: Request):
+    async with request.app.state.db_session() as db:
+        query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
+        result = await db.execute(query)
+        db_developer = result.scalar_one_or_none()
 
-    if not db_developer:
-        raise HTTPException(status_code=404, detail="Developer not found")
+        if not db_developer:
+            raise HTTPException(status_code=404, detail="Developer not found")
 
-    await db.delete(db_developer)
-    await db.commit()
+        await db.delete(db_developer)
+        await db.commit()
 
-    return {"message": "Developer deleted"}
+        return {"message": "Developer deleted"}
