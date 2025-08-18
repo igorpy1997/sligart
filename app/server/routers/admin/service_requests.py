@@ -90,13 +90,7 @@ async def get_service_requests(
             else:
                 query = query.order_by(getattr(DBServiceRequestModel, _sort))
 
-        # Pagination
-        query = query.offset(_start).limit(_end - _start)
-
-        result = await db.execute(query)
-        service_requests = result.scalars().all()
-
-        # Get total count
+        # Get total count first
         count_query = select(func.count(DBServiceRequestModel.id))
         if status:
             count_query = count_query.where(DBServiceRequestModel.status == status)
@@ -108,12 +102,24 @@ async def get_service_requests(
         count_result = await db.execute(count_query)
         total = count_result.scalar()
 
+        # Pagination
+        query = query.offset(_start).limit(_end - _start)
+
+        result = await db.execute(query)
+        service_requests = result.scalars().all()
+
         # Convert to dicts
         requests_data = [service_request_to_dict(sr) for sr in service_requests]
 
+        # Calculate end index for Content-Range
+        actual_end = min(_start + len(requests_data) - 1, total - 1) if requests_data else _start - 1
+
         return Response(
             content=json.dumps(requests_data),
-            headers={"X-Total-Count": str(total)},
+            headers={
+                "Content-Range": f"items {_start}-{actual_end}/{total}",
+                "Access-Control-Expose-Headers": "Content-Range"
+            },
             media_type="application/json"
         )
 
@@ -148,22 +154,6 @@ async def update_service_request(
         for field, value in service_request.dict(exclude_unset=True).items():
             setattr(db_service_request, field, value)
 
-        await db.commit()
-        await db.refresh(db_service_request)
-        return service_request_to_dict(db_service_request)
-
-@router.delete("/{request_id}")
-async def delete_service_request(request_id: int, request: Request):
-    """Удалить заявку (только для спама/тестовых заявок)"""
-    async with request.app.state.db_session() as db:
-        query = select(DBServiceRequestModel).where(DBServiceRequestModel.id == request_id)
-        result = await db.execute(query)
-        db_service_request = result.scalar_one_or_none()
-
-        if not db_service_request:
-            raise HTTPException(status_code=404, detail="Service request not found")
-
-        await db.delete(db_service_request)
         await db.commit()
 
         return {"message": "Service request deleted"}
@@ -200,4 +190,20 @@ async def get_requests_stats(request: Request):
             "total_requests": total,
             "by_status": status_stats,
             "by_priority": priority_stats
-        }
+        }()
+        await db.refresh(db_service_request)
+        return service_request_to_dict(db_service_request)
+
+@router.delete("/{request_id}")
+async def delete_service_request(request_id: int, request: Request):
+    """Удалить заявку (только для спама/тестовых заявок)"""
+    async with request.app.state.db_session() as db:
+        query = select(DBServiceRequestModel).where(DBServiceRequestModel.id == request_id)
+        result = await db.execute(query)
+        db_service_request = result.scalar_one_or_none()
+
+        if not db_service_request:
+            raise HTTPException(status_code=404, detail="Service request not found")
+
+        await db.delete(db_service_request)
+        await db.commit

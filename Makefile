@@ -116,3 +116,7 @@ current-revision: build
 .PHONY: create-init-revision
 create-init-revision: build
 	docker compose --env-file .env -f docker-compose.yml run --build --rm --user migrator migrations bash -c ".venv/bin/alembic --config alembic.ini revision --autogenerate -m 'Initial' --rev-id 000000000000"
+
+.PHONY: create-admin
+create-admin: ## Create admin user
+	chmod +x create_admin.sh && ./create_admin.sh

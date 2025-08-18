@@ -3,7 +3,8 @@ from .models import (
     DBProjectModel,
     DBServiceRequestModel,
     DBTechnologyModel,
-    DBDeveloperModel
+    DBDeveloperModel,
+    DBUserModel
 )
 
 __all__ = (  # noqa: RUF022
@@ -14,4 +15,5 @@ __all__ = (  # noqa: RUF022
     "DBServiceRequestModel",
     "DBTechnologyModel",
     "DBDeveloperModel",
+    "DBUserModel",
 )

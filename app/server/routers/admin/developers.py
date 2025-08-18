@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
 from pydantic import BaseModel
@@ -94,23 +93,29 @@ async def get_developers(
             else:
                 query = query.order_by(getattr(DBDeveloperModel, _sort))
 
+        # Get total count first
+        count_query = select(func.count(DBDeveloperModel.id))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar()
+
         # Pagination
         query = query.offset(_start).limit(_end - _start)
 
         result = await db.execute(query)
         developers = result.scalars().all()
 
-        # Get total count
-        count_query = select(func.count(DBDeveloperModel.id))
-        count_result = await db.execute(count_query)
-        total = count_result.scalar()
-
         # Convert to dicts
         developers_data = [developer_to_dict(dev) for dev in developers]
 
+        # Calculate end index for Content-Range
+        actual_end = min(_start + len(developers_data) - 1, total - 1) if developers_data else _start - 1
+
         return Response(
             content=json.dumps(developers_data),
-            headers={"X-Total-Count": str(total)},
+            headers={
+                "Content-Range": f"items {_start}-{actual_end}/{total}",
+                "Access-Control-Expose-Headers": "Content-Range"
+            },
             media_type="application/json"
         )
 

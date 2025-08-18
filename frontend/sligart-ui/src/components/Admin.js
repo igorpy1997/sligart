@@ -1,18 +1,22 @@
+// frontend/sligart-ui/src/components/Admin.js
 import React from 'react';
-import { Admin, Resource, ListGuesser, EditGuesser, ShowGuesser } from 'react-admin';
-import simpleRestProvider from 'ra-data-simple-rest';
+import { Admin, Resource } from 'react-admin';
+import authProvider from '../authProvider';
+import dataProvider from '../dataProvider';
 
-// Import custom components (создадим позже)
+// Import custom components
 import { DeveloperList, DeveloperEdit, DeveloperCreate, DeveloperShow } from './admin/developers';
 import { ProjectList, ProjectEdit, ProjectCreate, ProjectShow } from './admin/projects';
 import { TechnologyList, TechnologyEdit, TechnologyCreate } from './admin/technologies';
 import { ServiceRequestList, ServiceRequestEdit, ServiceRequestShow } from './admin/serviceRequests';
 
-// Configure the data provider
-const dataProvider = simpleRestProvider('/api/admin');
-
 const PortfolioAdmin = () => (
-  <Admin dataProvider={dataProvider} title="Portfolio Admin">
+  <Admin
+    dataProvider={dataProvider}
+    authProvider={authProvider}
+    title="Portfolio Admin"
+    loginPage={true}
+  >
     <Resource
       name="developers"
       list={DeveloperList}

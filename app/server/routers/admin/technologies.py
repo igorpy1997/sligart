@@ -69,25 +69,31 @@ async def get_technologies(
             else:
                 query = query.order_by(getattr(DBTechnologyModel, _sort))
 
-        # Pagination
-        query = query.offset(_start).limit(_end - _start)
-
-        result = await db.execute(query)
-        technologies = result.scalars().all()
-
-        # Get total count
+        # Get total count first
         count_query = select(func.count(DBTechnologyModel.id))
         if category:
             count_query = count_query.where(DBTechnologyModel.category == category)
         count_result = await db.execute(count_query)
         total = count_result.scalar()
 
+        # Pagination
+        query = query.offset(_start).limit(_end - _start)
+
+        result = await db.execute(query)
+        technologies = result.scalars().all()
+
         # Convert to dicts
         technologies_data = [technology_to_dict(tech) for tech in technologies]
 
+        # Calculate end index for Content-Range
+        actual_end = min(_start + len(technologies_data) - 1, total - 1) if technologies_data else _start - 1
+
         return Response(
             content=json.dumps(technologies_data),
-            headers={"X-Total-Count": str(total)},
+            headers={
+                "Content-Range": f"items {_start}-{actual_end}/{total}",
+                "Access-Control-Expose-Headers": "Content-Range"
+            },
             media_type="application/json"
         )
 

@@ -1,9 +1,10 @@
+# app/server/settings.py
 from dotenv import load_dotenv
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
-load_dotenv()
+#load_dotenv()
 
 
 class PostgresSettings(BaseSettings):
@@ -20,6 +21,9 @@ class PostgresSettings(BaseSettings):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict()
     psql: PostgresSettings = PostgresSettings(_env_prefix="PSQL_")
+    secret_key: SecretStr = SecretStr("your-super-secret-key-change-in-production")
+    algorithm: str = "HS256"
+    access_token_expire_hours: int = 24
 
     class Config:
         frozen = True

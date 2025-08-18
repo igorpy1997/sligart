@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
 from pydantic import BaseModel
@@ -94,23 +93,29 @@ async def get_projects(
             else:
                 query = query.order_by(getattr(DBProjectModel, _sort))
 
+        # Get total count first
+        count_query = select(func.count(DBProjectModel.id))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar()
+
         # Pagination
         query = query.offset(_start).limit(_end - _start)
 
         result = await db.execute(query)
         projects = result.scalars().all()
 
-        # Get total count
-        count_query = select(func.count(DBProjectModel.id))
-        count_result = await db.execute(count_query)
-        total = count_result.scalar()
-
         # Convert to dicts
         projects_data = [project_to_dict(project) for project in projects]
 
+        # Calculate end index for Content-Range
+        actual_end = min(_start + len(projects_data) - 1, total - 1) if projects_data else _start - 1
+
         return Response(
             content=json.dumps(projects_data),
-            headers={"X-Total-Count": str(total)},
+            headers={
+                "Content-Range": f"items {_start}-{actual_end}/{total}",
+                "Access-Control-Expose-Headers": "Content-Range"
+            },
             media_type="application/json"
         )
 

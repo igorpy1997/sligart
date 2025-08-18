@@ -47,28 +47,16 @@ export const ServiceRequestList = (props) => (
 export const ServiceRequestEdit = (props) => (
   <Edit {...props}>
     <SimpleForm>
-      <TextInput source="client_name" required />
-      <TextInput source="client_email" type="email" required />
-      <TextInput source="client_phone" />
-      <TextInput source="company_name" />
-      <SelectInput source="project_type" choices={[
-        { id: 'web', name: 'Web Development' },
-        { id: 'mobile', name: 'Mobile App' },
-        { id: 'desktop', name: 'Desktop Application' },
-        { id: 'api', name: 'API Development' },
-        { id: 'consultation', name: 'Consultation' },
-        { id: 'maintenance', name: 'Maintenance' },
-        { id: 'other', name: 'Other' }
-      ]} />
-      <SelectInput source="budget_range" choices={[
-        { id: 'under-1k', name: 'Under $1,000' },
-        { id: '1k-5k', name: '$1,000 - $5,000' },
-        { id: '5k-10k', name: '$5,000 - $10,000' },
-        { id: '10k-25k', name: '$10,000 - $25,000' },
-        { id: 'over-25k', name: 'Over $25,000' }
-      ]} />
-      <TextInput source="timeline" />
-      <TextInput source="description" multiline rows={4} />
+      <TextInput source="client_name" disabled />
+      <TextInput source="client_email" type="email" disabled />
+      <TextInput source="client_phone" disabled />
+      <TextInput source="company_name" disabled />
+      <TextInput source="project_type" disabled />
+      <TextInput source="budget_range" disabled />
+      <TextInput source="timeline" disabled />
+      <TextInput source="description" multiline rows={4} disabled />
+
+      {/* Только эти поля можно редактировать */}
       <SelectInput source="status" choices={[
         { id: 'new', name: 'New' },
         { id: 'contacted', name: 'Contacted' },
@@ -103,6 +91,7 @@ export const ServiceRequestShow = (props) => (
       <TextField source="description" />
       <TextField source="status" />
       <TextField source="priority" />
+      <TextField source="developer_id" />
       <TextField source="notes" />
       <DateField source="created_at" />
       <DateField source="updated_at" />

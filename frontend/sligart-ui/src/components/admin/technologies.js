@@ -2,7 +2,7 @@ import React from 'react';
 import {
   List, Datagrid, TextField, DateField,
   Edit, SimpleForm, TextInput, SelectInput,
-  Create, Filter, SearchInput
+  Create, Filter, SearchInput, Show, SimpleShowLayout
 } from 'react-admin';
 
 const TechnologyFilter = (props) => (
@@ -69,4 +69,18 @@ export const TechnologyCreate = (props) => (
       <TextInput source="color" label="Color (hex)" placeholder="#3178c6" />
     </SimpleForm>
   </Create>
+);
+
+// Добавим Show компонент для полноты
+export const TechnologyShow = (props) => (
+  <Show {...props}>
+    <SimpleShowLayout>
+      <TextField source="id" />
+      <TextField source="name" />
+      <TextField source="category" />
+      <TextField source="icon_url" />
+      <TextField source="color" />
+      <DateField source="created_at" />
+    </SimpleShowLayout>
+  </Show>
 );

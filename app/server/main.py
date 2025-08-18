@@ -1,4 +1,4 @@
-# app/server/main.py (updated with format prices router)
+# app/server/main.py
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import test
+from routers.auth import router as auth_router
 from routers.admin import admin_router
 from settings import Settings
 from storages.psql.base import create_db_session_pool, close_db
@@ -46,8 +47,8 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     app = FastAPI(
-        title="KeyCRM Integration API",
-        description="API для інтеграції з KeyCRM системою + импорт студентов + розрахунок платежів",
+        title="Portfolio CRM API",
+        description="API для управления портфолио + CRM система с авторизацией",
         version="2.0.0",
         lifespan=lifespan
     )
@@ -55,15 +56,16 @@ def create_app() -> FastAPI:
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # В продакшені вказати конкретні домени
+        allow_origins=["*"],  # В продакшині указать конкретные домены
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     # Include routers
-    app.include_router(test.router, prefix="/api")  # Добавь префикс тут
-    app.include_router(admin_router, prefix="/api")  # Добавь эту строку
+    app.include_router(test.router, prefix="/api")
+    app.include_router(auth_router, prefix="/api")  # Auth routes
+    app.include_router(admin_router, prefix="/api")  # Protected admin routes
 
     @app.get("/health")
     async def health_check():

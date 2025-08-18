@@ -2,8 +2,8 @@ import React from 'react';
 import {
   List, Datagrid, TextField, BooleanField, DateField, NumberField,
   Edit, SimpleForm, TextInput, BooleanInput, NumberInput, SelectInput, ArrayInput, SimpleFormIterator,
-  Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
-  Filter, SearchInput, ReferenceArrayInput, AutocompleteArrayInput
+  Create, Show, SimpleShowLayout,
+  Filter, SearchInput
 } from 'react-admin';
 
 const ProjectFilter = (props) => (
@@ -47,7 +47,7 @@ export const ProjectEdit = (props) => (
       <TextInput source="github_url" />
       <ArrayInput source="image_urls">
         <SimpleFormIterator>
-          <TextInput label="Image URL" />
+          <TextInput source="" label="Image URL" />
         </SimpleFormIterator>
       </ArrayInput>
       <SelectInput source="status" choices={[
@@ -70,12 +70,6 @@ export const ProjectEdit = (props) => (
         { id: '10k-25k', name: '$10k - $25k' },
         { id: '25k+', name: '$25k+' }
       ]} />
-      <ReferenceArrayInput source="developer_ids" reference="developers">
-        <AutocompleteArrayInput />
-      </ReferenceArrayInput>
-      <ReferenceArrayInput source="technology_ids" reference="technologies">
-        <AutocompleteArrayInput />
-      </ReferenceArrayInput>
     </SimpleForm>
   </Edit>
 );
@@ -90,7 +84,7 @@ export const ProjectCreate = (props) => (
       <TextInput source="github_url" />
       <ArrayInput source="image_urls">
         <SimpleFormIterator>
-          <TextInput label="Image URL" />
+          <TextInput source="" label="Image URL" />
         </SimpleFormIterator>
       </ArrayInput>
       <SelectInput source="status" choices={[
@@ -113,14 +107,25 @@ export const ProjectCreate = (props) => (
         { id: '10k-25k', name: '$10k - $25k' },
         { id: '25k+', name: '$25k+' }
       ]} />
-      <ReferenceArrayInput source="developer_ids" reference="developers">
-        <AutocompleteArrayInput />
-      </ReferenceArrayInput>
-      <ReferenceArrayInput source="technology_ids" reference="technologies">
-        <AutocompleteArrayInput />
-      </ReferenceArrayInput>
     </SimpleForm>
   </Create>
+);
+
+// Компонент для отображения массива URL изображений
+const ImageUrlsField = ({ record }) => (
+  <div>
+    {record && record.image_urls && record.image_urls.map((url, index) => (
+      <div key={index} style={{ margin: '5px 0' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{
+          fontSize: '12px',
+          color: '#1976d2',
+          textDecoration: 'none'
+        }}>
+          {url.length > 50 ? `${url.substring(0, 50)}...` : url}
+        </a>
+      </div>
+    ))}
+  </div>
 );
 
 export const ProjectShow = (props) => (
@@ -132,11 +137,7 @@ export const ProjectShow = (props) => (
       <TextField source="description" />
       <TextField source="demo_url" />
       <TextField source="github_url" />
-      <ArrayField source="image_urls">
-        <SingleFieldList>
-          <ChipField source="name" />
-        </SingleFieldList>
-      </ArrayField>
+      <ImageUrlsField label="Image URLs" />
       <TextField source="status" />
       <TextField source="project_type" />
       <BooleanField source="featured" />

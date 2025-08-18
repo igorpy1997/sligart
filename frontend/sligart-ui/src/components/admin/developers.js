@@ -3,7 +3,7 @@ import {
   List, Datagrid, TextField, EmailField, NumberField, BooleanField, DateField,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
-  Filter, SearchInput, SelectInput, ReferenceInput, AutocompleteInput
+  Filter, SearchInput, SelectInput
 } from 'react-admin';
 
 const DeveloperFilter = (props) => (
@@ -42,7 +42,7 @@ export const DeveloperEdit = (props) => (
       <NumberInput source="hourly_rate" />
       <ArrayInput source="skills">
         <SimpleFormIterator>
-          <TextInput />
+          <TextInput source="" label="Skill" />
         </SimpleFormIterator>
       </ArrayInput>
       <BooleanInput source="is_active" />
@@ -64,12 +64,29 @@ export const DeveloperCreate = (props) => (
       <NumberInput source="hourly_rate" />
       <ArrayInput source="skills">
         <SimpleFormIterator>
-          <TextInput />
+          <TextInput source="" label="Skill" />
         </SimpleFormIterator>
       </ArrayInput>
       <BooleanInput source="is_active" defaultValue={true} />
     </SimpleForm>
   </Create>
+);
+
+// Компонент для отображения массива строк
+const SkillsField = ({ record }) => (
+  <span>
+    {record && record.skills && record.skills.map((skill, index) => (
+      <span key={index} style={{
+        backgroundColor: '#e0e0e0',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        margin: '2px',
+        fontSize: '12px'
+      }}>
+        {skill}
+      </span>
+    ))}
+  </span>
 );
 
 export const DeveloperShow = (props) => (
@@ -85,11 +102,7 @@ export const DeveloperShow = (props) => (
       <TextField source="portfolio_url" />
       <NumberField source="years_experience" />
       <NumberField source="hourly_rate" />
-      <ArrayField source="skills">
-        <SingleFieldList>
-          <ChipField source="name" />
-        </SingleFieldList>
-      </ArrayField>
+      <SkillsField label="Skills" />
       <BooleanField source="is_active" />
       <DateField source="created_at" />
       <DateField source="updated_at" />
