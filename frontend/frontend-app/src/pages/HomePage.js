@@ -1,3 +1,4 @@
+// frontend/frontend-app/src/pages/HomePage.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -151,6 +152,7 @@ const HomePage = () => {
                       py: 1.5,
                       fontSize: '1.1rem',
                     }}
+                    href="mailto:hello@sligart.studio"
                   >
                     Start a Project
                   </Button>
@@ -159,7 +161,7 @@ const HomePage = () => {
                     variant="outlined"
                     size="large"
                     component={Link}
-                    to="/apitest"
+                    to="/projects"
                     sx={{
                       px: 4,
                       py: 1.5,
@@ -392,12 +394,15 @@ const HomePage = () => {
                     fontSize: '1.1rem',
                     fontWeight: 600,
                   }}
+                  href="mailto:hello@sligart.studio"
                 >
                   Discuss Project
                 </Button>
                 <Button
                   variant="outlined"
                   size="large"
+                  component={Link}
+                  to="/projects"
                   sx={{
                     px: 4,
                     py: 1.5,

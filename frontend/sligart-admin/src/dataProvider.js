@@ -1,7 +1,7 @@
-// frontend/sligart-admin/src/dataProvider.js - КАСТОМНАЯ ВЕРСИЯ С ПОДДЕРЖКОЙ ФАЙЛОВ
+// frontend/sligart-admin/src/dataProvider.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ФОТО ПРОЕКТОВ
 const apiUrl = '/api/admin';
 
-// Кастомный data provider с правильными headers
+// Кастомный data provider с правильными headers и загрузкой файлов
 const dataProvider = {
     getList: (resource, params) => {
         const { page, perPage } = params.pagination;
@@ -66,6 +66,11 @@ const dataProvider = {
             return createDeveloperWithAvatar(params);
         }
 
+        // Обрабатываем загрузку файлов для projects
+        if (resource === 'projects' && params.data.project_photos) {
+            return createProjectWithPhotos(params);
+        }
+
         return httpClient(`${apiUrl}/${resource}`, {
             method: 'POST',
             body: JSON.stringify(params.data),
@@ -78,6 +83,11 @@ const dataProvider = {
         // Обрабатываем загрузку файлов для developers
         if (resource === 'developers' && params.data.avatar_file) {
             return updateDeveloperWithAvatar(params);
+        }
+
+        // Обрабатываем загрузку файлов для projects
+        if (resource === 'projects' && params.data.project_photos) {
+            return updateProjectWithPhotos(params);
         }
 
         return httpClient(`${apiUrl}/${resource}/${params.id}`, {
@@ -113,7 +123,6 @@ const dataProvider = {
 
 // Функция для создания разработчика с аватаром
 const createDeveloperWithAvatar = async (params) => {
-    // Сначала создаем разработчика без аватара
     const developerData = { ...params.data };
     delete developerData.avatar_file;
 
@@ -124,12 +133,10 @@ const createDeveloperWithAvatar = async (params) => {
 
     const developerId = createResponse.json.id;
 
-    // Затем загружаем аватар
     if (params.data.avatar_file && params.data.avatar_file.rawFile) {
         await uploadAvatar(developerId, params.data.avatar_file.rawFile);
     }
 
-    // Получаем обновленные данные разработчика
     const updatedResponse = await httpClient(`${apiUrl}/developers/${developerId}`, {
         method: 'GET',
     });
@@ -139,7 +146,6 @@ const createDeveloperWithAvatar = async (params) => {
 
 // Функция для обновления разработчика с аватаром
 const updateDeveloperWithAvatar = async (params) => {
-    // Сначала обновляем основные данные разработчика
     const developerData = { ...params.data };
     delete developerData.avatar_file;
 
@@ -148,13 +154,69 @@ const updateDeveloperWithAvatar = async (params) => {
         body: JSON.stringify(developerData),
     });
 
-    // Затем загружаем новый аватар если есть
     if (params.data.avatar_file && params.data.avatar_file.rawFile) {
         await uploadAvatar(params.id, params.data.avatar_file.rawFile);
     }
 
-    // Получаем обновленные данные разработчика
     const updatedResponse = await httpClient(`${apiUrl}/developers/${params.id}`, {
+        method: 'GET',
+    });
+
+    return { data: updatedResponse.json };
+};
+
+// Функция для создания проекта с фотографиями
+const createProjectWithPhotos = async (params) => {
+    const projectData = { ...params.data };
+    delete projectData.project_photos;
+
+    const createResponse = await httpClient(`${apiUrl}/projects`, {
+        method: 'POST',
+        body: JSON.stringify(projectData),
+    });
+
+    const projectId = createResponse.json.id;
+
+    // Загружаем фотографии если есть
+    if (params.data.project_photos && params.data.project_photos.length > 0) {
+        const photoFiles = params.data.project_photos
+            .map(photo => photo.rawFile)
+            .filter(file => file);
+
+        if (photoFiles.length > 0) {
+            await uploadProjectPhotos(projectId, photoFiles);
+        }
+    }
+
+    const updatedResponse = await httpClient(`${apiUrl}/projects/${projectId}`, {
+        method: 'GET',
+    });
+
+    return { data: updatedResponse.json };
+};
+
+// Функция для обновления проекта с фотографиями
+const updateProjectWithPhotos = async (params) => {
+    const projectData = { ...params.data };
+    delete projectData.project_photos;
+
+    const updateResponse = await httpClient(`${apiUrl}/projects/${params.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(projectData),
+    });
+
+    // Загружаем новые фотографии если есть
+    if (params.data.project_photos && params.data.project_photos.length > 0) {
+        const photoFiles = params.data.project_photos
+            .map(photo => photo.rawFile)
+            .filter(file => file);
+
+        if (photoFiles.length > 0) {
+            await uploadProjectPhotos(params.id, photoFiles);
+        }
+    }
+
+    const updatedResponse = await httpClient(`${apiUrl}/projects/${params.id}`, {
         method: 'GET',
     });
 
@@ -182,6 +244,36 @@ const uploadAvatar = async (developerId, file) => {
 
     if (!response.ok) {
         throw new Error(`Failed to upload avatar: ${response.statusText}`);
+    }
+
+    return response.json();
+};
+
+// Функция для загрузки фотографий проекта
+const uploadProjectPhotos = async (projectId, files) => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        throw new Error('No auth token found');
+    }
+
+    const formData = new FormData();
+    files.forEach((file, index) => {
+        formData.append('photos', file);
+    });
+
+    console.log(`📸 Uploading ${files.length} photos for project ${projectId}`);
+
+    const response = await fetch(`${apiUrl}/projects/${projectId}/photos`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to upload project photos: ${response.statusText}`);
     }
 
     return response.json();

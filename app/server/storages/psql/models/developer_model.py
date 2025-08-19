@@ -1,7 +1,7 @@
 # app/server/storages/psql/models/developer_model.py
 from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text, Boolean, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from storages.psql.base import Base
 
 class DBDeveloperModel(Base):
@@ -22,6 +22,13 @@ class DBDeveloperModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Обратная связь с проектами
+    projects: Mapped[list["DBProjectModel"]] = relationship(
+        "DBProjectModel",
+        secondary="project_developers",
+        back_populates="developers"
+    )
 
     def __repr__(self) -> str:
         return f"Developer(id={self.id}, name={self.name}, email={self.email})"

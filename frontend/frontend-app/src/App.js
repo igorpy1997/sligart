@@ -11,6 +11,8 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ApiTestPage from './pages/ApiTestPage';
 import DeveloperPage from './pages/DeveloperPage';
+import ProjectsPage from './pages/ProjectsPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/apitest" element={<ApiTestPage />} />
               <Route path="/developer/:developerId" element={<DeveloperPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/project/:projectId" element={<ProjectDetailPage />} />
             </Routes>
           </Box>
 
