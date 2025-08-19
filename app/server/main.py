@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from routers import test
+from routers import test, public
 from routers.auth import router as auth_router
 from routers.admin import admin_router
 from settings import Settings
@@ -102,6 +102,7 @@ def create_app() -> FastAPI:
     app.include_router(test.router, prefix="/api")
     app.include_router(auth_router, prefix="/api")  # Auth routes
     app.include_router(admin_router, prefix="/api")  # Protected admin routes
+    app.include_router(public.router, prefix="/api")
     logger.info("✅ All routers registered")
 
     @app.get("/health")

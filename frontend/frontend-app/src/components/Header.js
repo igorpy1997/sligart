@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -13,40 +13,41 @@ import {
   Avatar,
   Typography,
   Divider,
-  useTheme
+  useTheme,
+  CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
+import Logo from './Logo'; // Import our new Logo component
 
 const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [developers, setDevelopers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
 
-  // Моковые данные разработчиков (потом будем получать из API)
-  const developers = [
-    {
-      id: 1,
-      name: 'Игорь Слизгарт',
-      role: 'Full-Stack Developer',
-      avatar: null, // Пока без аватара
-      skills: ['React', 'Python', 'FastAPI']
-    },
-    {
-      id: 2,
-      name: 'Анна Кодкинс',
-      role: 'Frontend Developer',
-      avatar: null,
-      skills: ['React', 'TypeScript', 'UI/UX']
-    },
-    {
-      id: 3,
-      name: 'Макс Бэкендов',
-      role: 'Backend Developer',
-      avatar: null,
-      skills: ['Python', 'PostgreSQL', 'Docker']
-    }
-  ];
+  // Load developers from API
+  useEffect(() => {
+    const loadDevelopers = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/public/developers?active_only=true&limit=10');
+        if (response.ok) {
+          const data = await response.json();
+          setDevelopers(data);
+        } else {
+          console.error('Failed to load developers');
+        }
+      } catch (error) {
+        console.error('Error loading developers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDevelopers();
+  }, []);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -58,46 +59,16 @@ const Header = () => {
   const handleDeveloperClick = (developer) => {
     console.log('Clicked developer:', developer);
     setDrawerOpen(false);
-    // Тут будет навигация к профилю разработчика
+    // TODO: Navigate to developer profile
   };
 
   return (
     <>
       <AppBar position="sticky" elevation={0}>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
-          {/* Логотип */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                backgroundColor: theme.palette.primary.main,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mr: 2
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
-                S
-              </Typography>
-            </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                color: theme.palette.text.primary,
-                display: { xs: 'none', sm: 'block' }
-              }}
-            >
-              Sligart Studio
-            </Typography>
-          </Box>
-
-          {/* Бургер меню */}
+          {/* Burger menu - moved to LEFT */}
           <IconButton
-            edge="end"
+            edge="start"
             color="inherit"
             aria-label="menu"
             onClick={toggleDrawer(true)}
@@ -110,12 +81,15 @@ const Header = () => {
           >
             <MenuIcon />
           </IconButton>
+
+          {/* Logo - moved to RIGHT */}
+          <Logo size={40} showText={true} />
         </Toolbar>
       </AppBar>
 
-      {/* Drawer с разработчиками */}
+      {/* Drawer with team members - moved to LEFT */}
       <Drawer
-        anchor="right"
+        anchor="left"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
         PaperProps={{
@@ -126,10 +100,10 @@ const Header = () => {
         }}
       >
         <Box sx={{ p: 2 }}>
-          {/* Заголовок drawer */}
+          {/* Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-              Наша команда
+              Our Team
             </Typography>
             <IconButton
               onClick={toggleDrawer(false)}
@@ -141,71 +115,103 @@ const Header = () => {
 
           <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)', mb: 2 }} />
 
-          {/* Список разработчиков */}
-          <List sx={{ p: 0 }}>
-            {developers.map((developer) => (
-              <ListItem key={developer.id} disablePadding sx={{ mb: 1 }}>
-                <ListItemButton
-                  onClick={() => handleDeveloperClick(developer)}
-                  sx={{
-                    borderRadius: 2,
-                    '&:hover': {
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                    }
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar
-                      src={developer.avatar}
-                      sx={{
-                        bgcolor: theme.palette.secondary.main,
-                        width: 48,
-                        height: 48
-                      }}
-                    >
-                      {developer.avatar ? null : <PersonIcon />}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 500 }}>
-                        {developer.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <>
-                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 0.5 }}>
-                          {developer.role}
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {developer.skills.slice(0, 3).map((skill, index) => (
-                            <Box
-                              key={index}
-                              sx={{
-                                backgroundColor: theme.palette.secondary.main,
-                                color: 'white',
-                                px: 1,
-                                py: 0.25,
-                                borderRadius: 1,
-                                fontSize: '0.75rem',
-                              }}
-                            >
-                              {skill}
-                            </Box>
-                          ))}
-                        </Box>
-                      </>
-                    }
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
+          {/* Loading state */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress sx={{ color: 'white' }} />
+            </Box>
+          )}
 
-          {/* Контактная информация в футере drawer */}
+          {/* Developers list */}
+          {!loading && (
+            <List sx={{ p: 0 }}>
+              {developers.map((developer) => (
+                <ListItem key={developer.id} disablePadding sx={{ mb: 1 }}>
+                  <ListItemButton
+                    onClick={() => handleDeveloperClick(developer)}
+                    sx={{
+                      borderRadius: 2,
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                      }
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        src={developer.avatar_url}
+                        sx={{
+                          bgcolor: theme.palette.secondary.main,
+                          width: 48,
+                          height: 48
+                        }}
+                      >
+                        {developer.avatar_url ? null : <PersonIcon />}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 500 }}>
+                          {developer.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <>
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 0.5 }}>
+                            {developer.years_experience} {developer.years_experience === 1 ? 'year' : 'years'} experience
+                          </Typography>
+                          {developer.skills && developer.skills.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {developer.skills.slice(0, 3).map((skill, index) => (
+                                <Box
+                                  key={index}
+                                  sx={{
+                                    backgroundColor: theme.palette.secondary.main,
+                                    color: 'white',
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: 1,
+                                    fontSize: '0.75rem',
+                                  }}
+                                >
+                                  {skill}
+                                </Box>
+                              ))}
+                              {developer.skills.length > 3 && (
+                                <Box
+                                  sx={{
+                                    color: 'rgba(255,255,255,0.5)',
+                                    px: 1,
+                                    py: 0.25,
+                                    fontSize: '0.75rem',
+                                  }}
+                                >
+                                  +{developer.skills.length - 3} more
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+                        </>
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          )}
+
+          {/* No developers found */}
+          {!loading && developers.length === 0 && (
+            <Box sx={{ textAlign: 'center', p: 4 }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                No team members found
+              </Typography>
+            </Box>
+          )}
+
+          {/* Contact info footer */}
           <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
-              Готовы к сотрудничеству?
+              Ready to work together?
             </Typography>
             <Typography variant="body2" sx={{ color: 'white', textAlign: 'center', mt: 1 }}>
               hello@sligart.studio

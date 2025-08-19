@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -7,7 +7,8 @@ import {
   Grid,
   Card,
   CardContent,
-  useTheme
+  useTheme,
+  CircularProgress
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -17,31 +18,73 @@ import CloudIcon from '@mui/icons-material/Cloud';
 
 const HomePage = () => {
   const theme = useTheme();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load stats from API
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response = await fetch('/api/public/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        } else {
+          console.error('Failed to load stats');
+          // Fallback to default stats
+          setStats({
+            developers: 3,
+            projects: 15,
+            completed_projects: 12,
+            years_experience: 3
+          });
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        // Fallback to default stats
+        setStats({
+          developers: 3,
+          projects: 15,
+          completed_projects: 12,
+          years_experience: 3
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   const features = [
     {
       icon: <CodeIcon sx={{ fontSize: 48, color: theme.palette.primary.main }} />,
-      title: 'Веб-разработка',
-      description: 'Создаем современные веб-приложения с использованием последних технологий'
+      title: 'Web Development',
+      description: 'Building modern web applications with cutting-edge technologies'
     },
     {
       icon: <DesignServicesIcon sx={{ fontSize: 48, color: theme.palette.secondary.main }} />,
-      title: 'UI/UX Дизайн',
-      description: 'Проектируем интуитивные интерфейсы, которые любят пользователи'
+      title: 'UI/UX Design',
+      description: 'Creating intuitive interfaces that users love to interact with'
     },
     {
       icon: <CloudIcon sx={{ fontSize: 48, color: theme.palette.primary.light }} />,
       title: 'DevOps & Hosting',
-      description: 'Обеспечиваем надежную инфраструктуру и безопасность ваших проектов'
+      description: 'Ensuring reliable infrastructure and security for your projects'
     }
   ];
 
-  const stats = [
-    { number: '50+', label: 'Завершенных проектов' },
-    { number: '3+', label: 'Лет опыта' },
-    { number: '20+', label: 'Довольных клиентов' },
-    { number: '24/7', label: 'Поддержка' }
-  ];
+  // Dynamic stats display
+  const getStatsDisplay = () => {
+    if (!stats) return [];
+
+    return [
+      { number: `${stats.projects}+`, label: 'Completed Projects' },
+      { number: `${stats.years_experience}+`, label: 'Years Experience' },
+      { number: `${stats.completed_projects}+`, label: 'Happy Clients' },
+      { number: '24/7', label: 'Support' }
+    ];
+  };
 
   return (
     <Box>
@@ -56,7 +99,7 @@ const HomePage = () => {
           overflow: 'hidden'
         }}
       >
-        {/* Декоративные элементы */}
+        {/* Decorative elements */}
         <Box
           sx={{
             position: 'absolute',
@@ -97,7 +140,7 @@ const HomePage = () => {
                   WebkitTextFillColor: 'transparent'
                 }}
               >
-                Создаем digital-решения будущего
+                Creating Digital Solutions for the Future
               </Typography>
 
               <Typography
@@ -109,8 +152,8 @@ const HomePage = () => {
                   fontWeight: 400
                 }}
               >
-                Команда профессионалов, которая воплощает ваши идеи в современные,
-                масштабируемые и эффективные IT-решения.
+                A team of professionals who bring your ideas to life through modern,
+                scalable, and efficient IT solutions.
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -128,7 +171,7 @@ const HomePage = () => {
                     }
                   }}
                 >
-                  Начать проект
+                  Start a Project
                 </Button>
 
                 <Button
@@ -148,7 +191,7 @@ const HomePage = () => {
                     }
                   }}
                 >
-                  Наши работы
+                  View Our Work
                 </Button>
               </Box>
             </Grid>
@@ -171,7 +214,7 @@ const HomePage = () => {
                   }
                 }}
               >
-                {/* Placeholder для команды */}
+                {/* Placeholder for team image - you'll replace this */}
                 <Box
                   sx={{
                     height: 400,
@@ -185,16 +228,16 @@ const HomePage = () => {
                     overflow: 'hidden'
                   }}
                 >
-                  {/* Временный placeholder - здесь будет фото команды */}
+                  {/* TODO: Replace with actual team photo */}
                   <Box sx={{ textAlign: 'center', p: 4 }}>
                     <Typography variant="h4" sx={{ color: theme.palette.primary.main, mb: 2 }}>
                       📸
                     </Typography>
                     <Typography variant="h6" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
-                      Фото команды
+                      Team Photo
                     </Typography>
                     <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                      Место для общего фото студии
+                      Studio team photo placeholder
                     </Typography>
                   </Box>
                 </Box>
@@ -204,37 +247,43 @@ const HomePage = () => {
         </Container>
       </Box>
 
-      {/* Статистика */}
+      {/* Statistics */}
       <Box sx={{ py: 6, backgroundColor: theme.palette.background.paper }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            {stats.map((stat, index) => (
-              <Grid item xs={6} md={3} key={index}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      fontWeight: 700,
-                      color: theme.palette.primary.main,
-                      mb: 1
-                    }}
-                  >
-                    {stat.number}
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ color: theme.palette.text.secondary }}
-                  >
-                    {stat.label}
-                  </Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={4}>
+              {getStatsDisplay().map((stat, index) => (
+                <Grid item xs={6} md={3} key={index}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: 700,
+                        color: theme.palette.primary.main,
+                        mb: 1
+                      }}
+                    >
+                      {stat.number}
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ color: theme.palette.text.secondary }}
+                    >
+                      {stat.label}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Container>
       </Box>
 
-      {/* Наши услуги */}
+      {/* Our Services */}
       <Box sx={{ py: 8 }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
@@ -249,7 +298,7 @@ const HomePage = () => {
                 WebkitTextFillColor: 'transparent'
               }}
             >
-              Что мы делаем
+              What We Do
             </Typography>
             <Typography
               variant="h6"
@@ -259,7 +308,7 @@ const HomePage = () => {
                 mx: 'auto'
               }}
             >
-              Полный цикл разработки от идеи до запуска и поддержки
+              Full development cycle from idea to launch and support
             </Typography>
           </Box>
 
@@ -320,7 +369,7 @@ const HomePage = () => {
               variant="h3"
               sx={{ fontWeight: 700, mb: 3 }}
             >
-              Готовы начать проект?
+              Ready to Start Your Project?
             </Typography>
             <Typography
               variant="h6"
@@ -330,8 +379,8 @@ const HomePage = () => {
                 lineHeight: 1.6
               }}
             >
-              Расскажите нам о своей идее, и мы поможем воплотить её в жизнь.
-              Первая консультация — бесплатно!
+              Tell us about your idea and we'll help bring it to life.
+              First consultation is free!
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Button
@@ -349,7 +398,7 @@ const HomePage = () => {
                   }
                 }}
               >
-                Обсудить проект
+                Discuss Project
               </Button>
               <Button
                 variant="outlined"
@@ -366,7 +415,7 @@ const HomePage = () => {
                   }
                 }}
               >
-                Посмотреть портфолио
+                View Portfolio
               </Button>
             </Box>
           </Box>

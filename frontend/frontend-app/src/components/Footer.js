@@ -15,6 +15,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import TelegramIcon from '@mui/icons-material/Telegram';
+import Logo from './Logo'; // Import Logo component
 
 const Footer = () => {
   const theme = useTheme();
@@ -79,36 +80,23 @@ const Footer = () => {
     >
       <Container maxWidth="lg">
         <Grid container spacing={4}>
-          {/* Логотип и описание */}
+          {/* Logo and description */}
           <Grid item xs={12} md={4}>
             <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    backgroundColor: theme.palette.secondary.main,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2
-                  }}
-                >
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
-                    S
-                  </Typography>
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Sligart Studio
-                </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Logo
+                  size={40}
+                  showText={true}
+                  textVariant="h6"
+                  logoPath="/logo-white.svg" // White version for dark background
+                />
               </Box>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mb: 3 }}>
-                Мы создаем современные веб-решения, которые помогают бизнесу расти.
-                От идеи до реализации - ваш надежный партнер в мире IT.
+                We create modern web solutions that help businesses grow.
+                From idea to implementation - your reliable IT partner.
               </Typography>
 
-              {/* Социальные сети */}
+              {/* Social media */}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {socialLinks.map((social, index) => (
                   <IconButton
@@ -133,10 +121,10 @@ const Footer = () => {
             </Box>
           </Grid>
 
-          {/* Услуги */}
+          {/* Services */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-              Наши услуги
+              Our Services
             </Typography>
             <Box>
               {services.map((service, index) => (
@@ -161,10 +149,10 @@ const Footer = () => {
             </Box>
           </Grid>
 
-          {/* Контакты */}
+          {/* Contact */}
           <Grid item xs={12} sm={6} md={5}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-              Связаться с нами
+              Get In Touch
             </Typography>
             <Box>
               {contactInfo.map((contact, index) => (
@@ -217,10 +205,10 @@ const Footer = () => {
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                Есть проект?
+                Have a project?
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mb: 2 }}>
-                Обсудим ваши идеи и воплотим их в жизнь
+                Let's discuss your ideas and bring them to life
               </Typography>
               <Link
                 href="mailto:hello@sligart.studio"
@@ -234,7 +222,7 @@ const Footer = () => {
                   }
                 }}
               >
-                Написать нам →
+                Contact us →
               </Link>
             </Box>
           </Grid>
@@ -244,7 +232,7 @@ const Footer = () => {
         <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)', my: 3 }} />
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-            © {currentYear} Sligart Studio. Все права защищены.
+            © {currentYear} Sligart Studio. All rights reserved.
           </Typography>
         </Box>
       </Container>
