@@ -207,3 +207,37 @@ async def delete_service_request(request_id: int, request: Request):
 
         await db.delete(db_service_request)
         await db.commit
+
+# Добавь в конец app/server/routers/admin/service_requests.py:
+
+@router.delete("")
+async def delete_many_service_requests(
+        request: Request,
+        ids: str = Query(..., description="Comma-separated list of IDs")
+):
+    """Массовое удаление заявок"""
+    async with request.app.state.db_session() as db:
+        # Парсим IDs
+        try:
+            request_ids = [int(id.strip()) for id in ids.split(',')]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid IDs format")
+
+        # Получаем заявки
+        query = select(DBServiceRequestModel).where(DBServiceRequestModel.id.in_(request_ids))
+        result = await db.execute(query)
+        service_requests = result.scalars().all()
+
+        if not service_requests:
+            raise HTTPException(status_code=404, detail="No service requests found")
+
+        # Удаляем заявки
+        for service_request in service_requests:
+            await db.delete(service_request)
+
+        await db.commit()
+
+        return {
+            "message": f"Deleted {len(service_requests)} service requests",
+            "deleted_ids": [req.id for req in service_requests]
+        }

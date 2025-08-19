@@ -18,9 +18,21 @@ class PostgresSettings(BaseSettings):
         frozen = True
 
 
+class CloudflareR2Settings(BaseSettings):
+    endpoint_url: str  # https://xxx.r2.cloudflarestorage.com
+    access_key_id: str
+    secret_access_key: SecretStr
+    bucket_name: str
+    public_url: str  # https://pub-xxx.r2.dev
+
+    class Config:
+        frozen = True
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict()
     psql: PostgresSettings = PostgresSettings(_env_prefix="PSQL_")
+    r2: CloudflareR2Settings = CloudflareR2Settings(_env_prefix="R2_")
     secret_key: SecretStr = SecretStr("your-super-secret-key-change-in-production")
     algorithm: str = "HS256"
     access_token_expire_hours: int = 24

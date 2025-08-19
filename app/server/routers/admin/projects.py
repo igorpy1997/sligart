@@ -177,3 +177,38 @@ async def delete_project(project_id: int, request: Request):
         await db.commit()
 
         return {"message": "Project deleted"}
+
+# Добавь в конец app/server/routers/admin/projects.py:
+
+@router.delete("")
+async def delete_many_projects(
+        request: Request,
+        ids: str = Query(..., description="Comma-separated list of IDs")
+):
+    """Массовое удаление проектов"""
+    async with request.app.state.db_session() as db:
+        # Парсим IDs
+        try:
+            project_ids = [int(id.strip()) for id in ids.split(',')]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid IDs format")
+
+        # Получаем проекты
+        query = select(DBProjectModel).where(DBProjectModel.id.in_(project_ids))
+        result = await db.execute(query)
+        projects = result.scalars().all()
+
+        if not projects:
+            raise HTTPException(status_code=404, detail="No projects found")
+
+        # Удаляем проекты
+        for project in projects:
+            await db.delete(project)
+
+        await db.commit()
+
+        return {
+            "message": f"Deleted {len(projects)} projects",
+            "deleted_ids": [proj.id for proj in projects]
+        }
+

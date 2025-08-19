@@ -186,3 +186,37 @@ async def get_technology_categories(request: Request):
         categories = result.scalars().all()
 
         return {"categories": categories}
+
+# Добавь в конец app/server/routers/admin/technologies.py:
+
+@router.delete("")
+async def delete_many_technologies(
+        request: Request,
+        ids: str = Query(..., description="Comma-separated list of IDs")
+):
+    """Массовое удаление технологий"""
+    async with request.app.state.db_session() as db:
+        # Парсим IDs
+        try:
+            technology_ids = [int(id.strip()) for id in ids.split(',')]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid IDs format")
+
+        # Получаем технологии
+        query = select(DBTechnologyModel).where(DBTechnologyModel.id.in_(technology_ids))
+        result = await db.execute(query)
+        technologies = result.scalars().all()
+
+        if not technologies:
+            raise HTTPException(status_code=404, detail="No technologies found")
+
+        # Удаляем технологии
+        for technology in technologies:
+            await db.delete(technology)
+
+        await db.commit()
+
+        return {
+            "message": f"Deleted {len(technologies)} technologies",
+            "deleted_ids": [tech.id for tech in technologies]
+        }

@@ -3,7 +3,7 @@ import {
   List, Datagrid, TextField, EmailField, NumberField, BooleanField, DateField,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
-  Filter, SearchInput, SelectInput
+  Filter, SearchInput, SelectInput, ImageField, ImageInput
 } from 'react-admin';
 
 const DeveloperFilter = (props) => (
@@ -14,10 +14,66 @@ const DeveloperFilter = (props) => (
   </Filter>
 );
 
+// Кастомный компонент для отображения аватара в списке
+const AvatarField = ({ record }) => (
+  record && record.avatar_url ? (
+    <img
+      src={record.avatar_url}
+      alt="Avatar"
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        objectFit: 'cover'
+      }}
+    />
+  ) : (
+    <div style={{
+      width: 40,
+      height: 40,
+      borderRadius: '50%',
+      backgroundColor: '#e0e0e0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '12px',
+      color: '#666'
+    }}>
+      No Photo
+    </div>
+  )
+);
+
+// Кастомный инпут для загрузки аватара
+const AvatarInput = (props) => {
+  return (
+    <div>
+      <ImageInput
+        source="avatar_file"
+        label="Avatar"
+        accept="image/*"
+        placeholder={<p>Drop an image here, or click to select one</p>}
+        {...props}
+      >
+        <ImageField source="src" title="title" />
+      </ImageInput>
+
+      {/* Показываем текущий аватар если есть */}
+      <TextInput
+        source="avatar_url"
+        label="Current Avatar URL"
+        disabled
+        helperText="This field will be updated automatically when you upload a new avatar"
+      />
+    </div>
+  );
+};
+
 export const DeveloperList = (props) => (
   <List {...props} filters={<DeveloperFilter />} perPage={25}>
     <Datagrid rowClick="show">
       <TextField source="id" />
+      <AvatarField label="Avatar" />
       <TextField source="name" />
       <EmailField source="email" />
       <NumberField source="years_experience" />
@@ -34,7 +90,7 @@ export const DeveloperEdit = (props) => (
       <TextInput source="name" required />
       <TextInput source="email" type="email" required />
       <TextInput source="bio" multiline rows={4} />
-      <TextInput source="avatar_url" />
+      <AvatarInput />
       <TextInput source="github_url" />
       <TextInput source="linkedin_url" />
       <TextInput source="portfolio_url" />
@@ -56,7 +112,7 @@ export const DeveloperCreate = (props) => (
       <TextInput source="name" required />
       <TextInput source="email" type="email" required />
       <TextInput source="bio" multiline rows={4} />
-      <TextInput source="avatar_url" />
+      <AvatarInput />
       <TextInput source="github_url" />
       <TextInput source="linkedin_url" />
       <TextInput source="portfolio_url" />
@@ -93,10 +149,10 @@ export const DeveloperShow = (props) => (
   <Show {...props}>
     <SimpleShowLayout>
       <TextField source="id" />
+      <ImageField source="avatar_url" label="Avatar" />
       <TextField source="name" />
       <EmailField source="email" />
       <TextField source="bio" />
-      <TextField source="avatar_url" />
       <TextField source="github_url" />
       <TextField source="linkedin_url" />
       <TextField source="portfolio_url" />
