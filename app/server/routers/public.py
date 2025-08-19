@@ -22,6 +22,7 @@ class PublicDeveloper(BaseModel):
     portfolio_url: Optional[str] = None
     years_experience: int
     skills: Optional[List[str]] = None
+    specialization: str
 
     class Config:
         from_attributes = True

@@ -26,6 +26,7 @@ class DeveloperResponse(BaseModel):
     years_experience: int
     hourly_rate: Optional[int] = None
     skills: Optional[List[str]] = None
+    specialization: str
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -44,6 +45,7 @@ class DeveloperCreate(BaseModel):
     years_experience: int = 0
     hourly_rate: Optional[int] = None
     skills: Optional[List[str]] = None
+    specialization: str  # Обязательное поле
     is_active: bool = True
 
 class DeveloperUpdate(BaseModel):
@@ -57,6 +59,7 @@ class DeveloperUpdate(BaseModel):
     years_experience: Optional[int] = None
     hourly_rate: Optional[int] = None
     skills: Optional[List[str]] = None
+    specialization: Optional[str] = None
     is_active: Optional[bool] = None
 
 def get_r2_service() -> R2Service:
@@ -78,6 +81,7 @@ def developer_to_dict(dev):
         "years_experience": dev.years_experience,
         "hourly_rate": dev.hourly_rate,
         "skills": dev.skills or [],
+        "specialization": dev.specialization,
         "is_active": dev.is_active,
         "created_at": dev.created_at.isoformat(),
         "updated_at": dev.updated_at.isoformat()
@@ -232,7 +236,7 @@ async def delete_many_developers(
             "deleted_ids": [dev.id for dev in developers]
         }
 
-# НОВЫЕ ENDPOINTS ДЛЯ РАБОТЫ С АВАТАРАМИ
+# ENDPOINTS ДЛЯ РАБОТЫ С АВАТАРАМИ
 
 @router.post("/{developer_id}/avatar")
 async def upload_avatar(

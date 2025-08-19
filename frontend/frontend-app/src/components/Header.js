@@ -1,3 +1,4 @@
+// frontend/frontend-app/src/components/Header.js
 import React, { useState, useEffect } from 'react';
 import {
   AppBar,
@@ -16,16 +17,18 @@ import {
   useTheme,
   CircularProgress
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
-import Logo from './Logo'; // Import our new Logo component
+import Logo from './Logo';
 
 const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [developers, setDevelopers] = useState([]);
   const [loading, setLoading] = useState(false);
   const theme = useTheme();
+  const navigate = useNavigate();
 
   // Load developers from API
   useEffect(() => {
@@ -57,9 +60,8 @@ const Header = () => {
   };
 
   const handleDeveloperClick = (developer) => {
-    console.log('Clicked developer:', developer);
     setDrawerOpen(false);
-    // TODO: Navigate to developer profile
+    navigate(`/developer/${developer.id}`);
   };
 
   return (
@@ -94,7 +96,7 @@ const Header = () => {
         onClose={toggleDrawer(false)}
         PaperProps={{
           sx: {
-            width: { xs: '100%', sm: 360 },
+            width: { xs: '100%', sm: 380 },
             backgroundColor: theme.palette.primary.dark,
           }
         }}
@@ -156,8 +158,8 @@ const Header = () => {
                       }
                       secondary={
                         <>
-                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 0.5 }}>
-                            {developer.years_experience} {developer.years_experience === 1 ? 'year' : 'years'} experience
+                          <Typography variant="body2" sx={{ color: theme.palette.secondary.main, mb: 0.5, fontWeight: 500 }}>
+                            {developer.specialization}
                           </Typography>
                           {developer.skills && developer.skills.length > 0 && (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -165,7 +167,7 @@ const Header = () => {
                                 <Box
                                   key={index}
                                   sx={{
-                                    backgroundColor: theme.palette.secondary.main,
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
                                     color: 'white',
                                     px: 1,
                                     py: 0.25,

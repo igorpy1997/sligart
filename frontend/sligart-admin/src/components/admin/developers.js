@@ -1,3 +1,4 @@
+// frontend/sligart-admin/src/components/admin/developers.js
 import React from 'react';
 import {
   List, Datagrid, TextField, EmailField, NumberField, BooleanField, DateField,
@@ -11,6 +12,18 @@ const DeveloperFilter = (props) => (
     <SearchInput source="q" alwaysOn />
     <BooleanInput source="is_active" />
     <NumberInput source="years_experience_gte" label="Min Experience" />
+    <SelectInput source="specialization" choices={[
+      { id: 'Frontend Developer', name: 'Frontend Developer' },
+      { id: 'Backend Developer', name: 'Backend Developer' },
+      { id: 'Full-Stack Developer', name: 'Full-Stack Developer' },
+      { id: 'Mobile Developer', name: 'Mobile Developer' },
+      { id: 'DevOps Engineer', name: 'DevOps Engineer' },
+      { id: 'UI/UX Designer', name: 'UI/UX Designer' },
+      { id: 'Software Developer', name: 'Software Developer' },
+      { id: 'Data Engineer', name: 'Data Engineer' },
+      { id: 'QA Engineer', name: 'QA Engineer' },
+      { id: 'Technical Lead', name: 'Technical Lead' },
+    ]} />
   </Filter>
 );
 
@@ -76,6 +89,7 @@ export const DeveloperList = (props) => (
       <AvatarField label="Avatar" />
       <TextField source="name" />
       <EmailField source="email" />
+      <TextField source="specialization" />
       <NumberField source="years_experience" />
       <NumberField source="hourly_rate" />
       <BooleanField source="is_active" />
@@ -96,6 +110,24 @@ export const DeveloperEdit = (props) => (
       <TextInput source="portfolio_url" />
       <NumberInput source="years_experience" />
       <NumberInput source="hourly_rate" />
+
+      <SelectInput
+        source="specialization"
+        choices={[
+          { id: 'Frontend Developer', name: 'Frontend Developer' },
+          { id: 'Backend Developer', name: 'Backend Developer' },
+          { id: 'Full-Stack Developer', name: 'Full-Stack Developer' },
+          { id: 'Mobile Developer', name: 'Mobile Developer' },
+          { id: 'DevOps Engineer', name: 'DevOps Engineer' },
+          { id: 'UI/UX Designer', name: 'UI/UX Designer' },
+          { id: 'Software Developer', name: 'Software Developer' },
+          { id: 'Data Engineer', name: 'Data Engineer' },
+          { id: 'QA Engineer', name: 'QA Engineer' },
+          { id: 'Technical Lead', name: 'Technical Lead' },
+        ]}
+        required
+      />
+
       <ArrayInput source="skills">
         <SimpleFormIterator>
           <TextInput source="" label="Skill" />
@@ -118,6 +150,25 @@ export const DeveloperCreate = (props) => (
       <TextInput source="portfolio_url" />
       <NumberInput source="years_experience" defaultValue={0} />
       <NumberInput source="hourly_rate" />
+
+      <SelectInput
+        source="specialization"
+        choices={[
+          { id: 'Frontend Developer', name: 'Frontend Developer' },
+          { id: 'Backend Developer', name: 'Backend Developer' },
+          { id: 'Full-Stack Developer', name: 'Full-Stack Developer' },
+          { id: 'Mobile Developer', name: 'Mobile Developer' },
+          { id: 'DevOps Engineer', name: 'DevOps Engineer' },
+          { id: 'UI/UX Designer', name: 'UI/UX Designer' },
+          { id: 'Software Developer', name: 'Software Developer' },
+          { id: 'Data Engineer', name: 'Data Engineer' },
+          { id: 'QA Engineer', name: 'QA Engineer' },
+          { id: 'Technical Lead', name: 'Technical Lead' },
+        ]}
+        defaultValue="Full-Stack Developer"
+        required
+      />
+
       <ArrayInput source="skills">
         <SimpleFormIterator>
           <TextInput source="" label="Skill" />
@@ -158,6 +209,7 @@ export const DeveloperShow = (props) => (
       <TextField source="portfolio_url" />
       <NumberField source="years_experience" />
       <NumberField source="hourly_rate" />
+      <TextField source="specialization" />
       <SkillsField label="Skills" />
       <BooleanField source="is_active" />
       <DateField source="created_at" />

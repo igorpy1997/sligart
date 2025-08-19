@@ -1,3 +1,4 @@
+# app/server/storages/psql/models/developer_model.py
 from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text, Boolean, JSON
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,6 +18,7 @@ class DBDeveloperModel(Base):
     years_experience: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     hourly_rate: Mapped[int] = mapped_column(Integer, nullable=True)
     skills: Mapped[list] = mapped_column(JSON, nullable=True)
+    specialization: Mapped[str] = mapped_column(String(100), nullable=False, default="Full-Stack Developer")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
