@@ -1,4 +1,3 @@
-// frontend/frontend-app/src/components/Header.js
 import React, { useState, useEffect } from 'react';
 import {
   AppBar,
@@ -15,9 +14,10 @@ import {
   Typography,
   Divider,
   useTheme,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
@@ -27,8 +27,20 @@ const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [developers, setDevelopers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
+
+  // Handle scroll for transparency effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 50;
+      setScrolled(isScrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Load developers from API
   useEffect(() => {
@@ -49,8 +61,10 @@ const Header = () => {
       }
     };
 
-    loadDevelopers();
-  }, []);
+    if (drawerOpen && developers.length === 0) {
+      loadDevelopers();
+    }
+  }, [drawerOpen, developers.length]);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -66,30 +80,48 @@ const Header = () => {
 
   return (
     <>
-      <AppBar position="sticky" elevation={0}>
-        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
-          {/* Burger menu - moved to LEFT */}
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="menu"
-            onClick={toggleDrawer(true)}
-            sx={{
-              color: theme.palette.text.primary,
-              '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-              }
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
+      {/* AppBar */}
+      <motion.div
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <AppBar
+          position="sticky"
+          elevation={scrolled ? 1 : 0}
+          sx={{
+            backgroundColor: scrolled
+              ? 'rgba(255, 255, 255, 0.95)'
+              : 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
+            {/* Menu Button */}
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={toggleDrawer(true)}
+              sx={{
+                color: theme.palette.text.primary,
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
 
-          {/* Logo - moved to RIGHT */}
-          <Logo size={40} showText={true} />
-        </Toolbar>
-      </AppBar>
+            {/* Logo */}
+            <Logo size={40} showText={true} />
+          </Toolbar>
+        </AppBar>
+      </motion.div>
 
-      {/* Drawer with team members - moved to LEFT */}
+      {/* Drawer */}
       <Drawer
         anchor="left"
         open={drawerOpen}
@@ -158,7 +190,7 @@ const Header = () => {
                       }
                       secondary={
                         <>
-                          <Typography variant="body2" sx={{ color: theme.palette.secondary.main, mb: 0.5, fontWeight: 500 }}>
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 0.5, fontWeight: 500 }}>
                             {developer.specialization}
                           </Typography>
                           {developer.skills && developer.skills.length > 0 && (
