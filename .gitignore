@@ -167,3 +167,4 @@ caddy/data/
 data
 frontend/dist/
 frontend/node_modules
+package-lock.json
