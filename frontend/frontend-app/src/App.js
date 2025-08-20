@@ -32,7 +32,8 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/apitest" element={<ApiTestPage />} />
-              <Route path="/developer/:developerId" element={<DeveloperPage />} />
+              {/* Изменено: теперь используем slug вместо ID */}
+              <Route path="/developer/:developerSlug" element={<DeveloperPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/project/:projectId" element={<ProjectDetailPage />} />
             </Routes>

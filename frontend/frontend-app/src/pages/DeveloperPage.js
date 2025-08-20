@@ -1,6 +1,6 @@
 // frontend/frontend-app/src/pages/DeveloperPage.js
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -9,7 +9,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   IconButton,
   Button,
@@ -19,7 +18,6 @@ import {
   Alert,
   useTheme,
   Paper,
-  Link
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -28,9 +26,10 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import EmailIcon from '@mui/icons-material/Email';
 import CodeIcon from '@mui/icons-material/Code';
 import PersonIcon from '@mui/icons-material/Person';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 const DeveloperPage = () => {
-  const { developerId } = useParams();
+  const { developerSlug } = useParams(); // Теперь принимаем slug вместо ID
   const navigate = useNavigate();
   const theme = useTheme();
   const [developer, setDeveloper] = useState(null);
@@ -44,13 +43,24 @@ const DeveloperPage = () => {
       try {
         setLoading(true);
 
-        // Загружаем информацию о разработчике
-        const developerResponse = await fetch(`/api/public/developers/${developerId}`);
-        if (!developerResponse.ok) {
+        // Загружаем всех разработчиков для поиска по имени
+        const developersResponse = await fetch('/api/public/developers?active_only=true&limit=50');
+        if (!developersResponse.ok) {
+          throw new Error('Failed to load developers');
+        }
+        const developersData = await developersResponse.json();
+
+        // Ищем разработчика по slug
+        const targetDeveloper = developersData.find(dev => {
+          const slug = dev.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          return slug === developerSlug;
+        });
+
+        if (!targetDeveloper) {
           throw new Error('Developer not found');
         }
-        const developerData = await developerResponse.json();
-        setDeveloper(developerData);
+
+        setDeveloper(targetDeveloper);
 
         // Загружаем проекты (пока используем общий endpoint, позже можно добавить фильтр по разработчику)
         const projectsResponse = await fetch('/api/public/projects?limit=20');
@@ -66,10 +76,10 @@ const DeveloperPage = () => {
       }
     };
 
-    if (developerId) {
+    if (developerSlug) {
       loadDeveloperData();
     }
-  }, [developerId]);
+  }, [developerSlug]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -141,7 +151,7 @@ const DeveloperPage = () => {
               <Box sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-start' }, gap: 1, mt: 2 }}>
                 {developer.github_url && (
                   <IconButton
-                    component={Link}
+                    component="a"
                     href={developer.github_url}
                     target="_blank"
                     sx={{ color: theme.palette.text.secondary }}
@@ -151,7 +161,7 @@ const DeveloperPage = () => {
                 )}
                 {developer.linkedin_url && (
                   <IconButton
-                    component={Link}
+                    component="a"
                     href={developer.linkedin_url}
                     target="_blank"
                     sx={{ color: theme.palette.text.secondary }}
@@ -161,7 +171,7 @@ const DeveloperPage = () => {
                 )}
                 {developer.portfolio_url && (
                   <IconButton
-                    component={Link}
+                    component="a"
                     href={developer.portfolio_url}
                     target="_blank"
                     sx={{ color: theme.palette.text.secondary }}
@@ -272,7 +282,7 @@ const DeveloperPage = () => {
 
           {/* Контент табов */}
           <Box sx={{ p: 3 }}>
-            {/* Таб с проектами */}
+            {/* Таб с проектами - БЕЗ ФОТОГРАФИЙ И С КНОПКОЙ ПЕРЕХОДА */}
             {activeTab === 0 && (
               <Box>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
@@ -293,15 +303,6 @@ const DeveloperPage = () => {
                             }
                           }}
                         >
-                          {project.image_urls && project.image_urls.length > 0 && (
-                            <CardMedia
-                              component="img"
-                              height="200"
-                              image={project.image_urls[0]}
-                              alt={project.title}
-                              sx={{ objectFit: 'cover' }}
-                            />
-                          )}
                           <CardContent>
                             <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                               {project.title}
@@ -323,23 +324,11 @@ const DeveloperPage = () => {
                             )}
 
                             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                              {project.demo_url && (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  component={Link}
-                                  href={project.demo_url}
-                                  target="_blank"
-                                  endIcon={<LaunchIcon />}
-                                >
-                                  Demo
-                                </Button>
-                              )}
                               {project.github_url && (
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  component={Link}
+                                  component="a"
                                   href={project.github_url}
                                   target="_blank"
                                   endIcon={<GitHubIcon />}
@@ -347,6 +336,17 @@ const DeveloperPage = () => {
                                   Code
                                 </Button>
                               )}
+                              {/* ДОБАВЛЯЕМ КНОПКУ ПЕРЕХОДА НА СТРАНИЦУ ПРОЕКТА */}
+                              <Button
+                                size="small"
+                                variant="text"
+                                component={Link}
+                                to={`/project/${project.id}`}
+                                endIcon={<ArrowForwardIcon />}
+                                sx={{ ml: 'auto' }}
+                              >
+                                View Project
+                              </Button>
                             </Box>
                           </CardContent>
                         </Card>

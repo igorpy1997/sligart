@@ -219,6 +219,9 @@ async def delete_many_projects(
 
 # ENDPOINTS ДЛЯ РАБОТЫ С ФОТОГРАФИЯМИ ПРОЕКТОВ
 
+# В файле app/server/routers/admin/projects.py
+
+# ЗАМЕНИ ЭТОТ ENDPOINT:
 @router.post("/{project_id}/photos")
 async def upload_project_photos(
         project_id: int,
@@ -236,6 +239,7 @@ async def upload_project_photos(
             raise HTTPException(status_code=404, detail="Project not found")
 
         uploaded_urls = []
+        # ВАЖНО: Получаем текущие изображения, чтобы НЕ перезаписать их
         current_images = db_project.image_urls or []
 
         # Загружаем каждое фото
@@ -243,12 +247,13 @@ async def upload_project_photos(
             try:
                 photo_url = await r2_service.upload_project_screenshot(photo, project_id)
                 uploaded_urls.append(photo_url)
+                # ДОБАВЛЯЕМ к существующим, а не заменяем!
                 current_images.append(photo_url)
             except Exception as e:
                 # Если одно фото не загрузилось, продолжаем с остальными
                 print(f"Failed to upload photo: {e}")
 
-        # Обновляем список изображений в БД
+        # Обновляем список изображений в БД (ДОБАВИЛИ новые к старым)
         db_project.image_urls = current_images
         await db.commit()
         await db.refresh(db_project)
@@ -256,7 +261,7 @@ async def upload_project_photos(
         return {
             "message": f"Uploaded {len(uploaded_urls)} photos",
             "uploaded_urls": uploaded_urls,
-            "total_images": len(current_images)
+            "total_images": len(current_images)  # Общее количество фотографий
         }
 
 @router.delete("/{project_id}/photos")

@@ -27,6 +27,8 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import EmailIcon from '@mui/icons-material/Email';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { motion } from 'framer-motion';
 
 import { FadeInUp, FadeInLeft, FadeInRight } from '../components/animations';
@@ -39,7 +41,7 @@ const ProjectDetailPage = () => {
   const [relatedProjects, setRelatedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -105,6 +107,19 @@ const ProjectDetailPage = () => {
       'other': theme.palette.warning.main
     };
     return colors[type] || theme.palette.grey[500];
+  };
+
+  // Навигация по изображениям в модальном окне
+  const handlePrevImage = () => {
+    if (selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    }
+  };
+
+  const handleNextImage = () => {
+    if (project?.image_urls && selectedImageIndex < project.image_urls.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
   };
 
   if (loading) {
@@ -257,32 +272,35 @@ const ProjectDetailPage = () => {
                       Project Team
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {project.developers.map((dev) => (
-                        <Box key={dev.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar
-                            src={dev.avatar_url}
-                            alt={dev.name}
-                            sx={{ width: 48, height: 48 }}
-                            component={Link}
-                            to={`/developer/${dev.id}`}
-                          />
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{ fontWeight: 500 }}
+                      {project.developers.map((dev) => {
+                        const slug = dev.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                        return (
+                          <Box key={dev.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar
+                              src={dev.avatar_url}
+                              alt={dev.name}
+                              sx={{ width: 48, height: 48 }}
                               component={Link}
-                              to={`/developer/${dev.id}`}
-                              color="inherit"
-                              underline="hover"
-                            >
-                              {dev.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                              {dev.specialization}
-                            </Typography>
+                              to={`/developer/${slug}`}
+                            />
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ fontWeight: 500 }}
+                                component={Link}
+                                to={`/developer/${slug}`}
+                                color="inherit"
+                                underline="hover"
+                              >
+                                {dev.name}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                {dev.specialization}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Box>
                   </Card>
                 )}
@@ -294,14 +312,16 @@ const ProjectDetailPage = () => {
         <Grid container spacing={4}>
           {/* Main Content */}
           <Grid item xs={12} md={8}>
-            {/* Project Images */}
+            {/* Project Images - ОБНОВЛЕННЫЙ БЛОК */}
             {project.image_urls && project.image_urls.length > 0 && (
               <FadeInLeft>
                 <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
                   <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-                    Project Gallery
+                    Project Gallery ({project.image_urls.length} photos)
                   </Typography>
-                  <ImageList variant="masonry" cols={2} gap={16}>
+
+                  {/* Отображаем все изображения */}
+                  <ImageList variant="masonry" cols={project.image_urls.length === 1 ? 1 : 2} gap={16}>
                     {project.image_urls.map((image, index) => (
                       <ImageListItem key={index}>
                         <motion.img
@@ -316,7 +336,7 @@ const ProjectDetailPage = () => {
                           }}
                           whileHover={{ scale: 1.02 }}
                           transition={{ duration: 0.2 }}
-                          onClick={() => setSelectedImage(image)}
+                          onClick={() => setSelectedImageIndex(index)}
                         />
                       </ImageListItem>
                     ))}
@@ -428,10 +448,10 @@ const ProjectDetailPage = () => {
         </Grid>
       </Container>
 
-      {/* Image Preview Dialog */}
+      {/* Image Preview Dialog - ОБНОВЛЕННЫЙ БЛОК С НАВИГАЦИЕЙ */}
       <Dialog
-        open={!!selectedImage}
-        onClose={() => setSelectedImage(null)}
+        open={selectedImageIndex !== null}
+        onClose={() => setSelectedImageIndex(null)}
         maxWidth="lg"
         fullWidth
         PaperProps={{
@@ -439,25 +459,90 @@ const ProjectDetailPage = () => {
         }}
       >
         <DialogContent sx={{ p: 1, position: 'relative' }}>
+          {/* Кнопка закрытия */}
           <IconButton
-            onClick={() => setSelectedImage(null)}
+            onClick={() => setSelectedImageIndex(null)}
             sx={{
               position: 'absolute',
               top: 8,
               right: 8,
               backgroundColor: 'rgba(0,0,0,0.5)',
               color: 'white',
-              zIndex: 1,
+              zIndex: 2,
               '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
             }}
           >
             <CloseIcon />
           </IconButton>
-          {selectedImage && (
+
+          {/* Навигация по изображениям */}
+          {project?.image_urls && project.image_urls.length > 1 && (
+            <>
+              {/* Предыдущее изображение */}
+              {selectedImageIndex > 0 && (
+                <IconButton
+                  onClick={handlePrevImage}
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: 16,
+                    transform: 'translateY(-50%)',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    color: 'white',
+                    zIndex: 2,
+                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
+                  }}
+                >
+                  <ArrowBackIosIcon />
+                </IconButton>
+              )}
+
+              {/* Следующее изображение */}
+              {selectedImageIndex < project.image_urls.length - 1 && (
+                <IconButton
+                  onClick={handleNextImage}
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: 16,
+                    transform: 'translateY(-50%)',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    color: 'white',
+                    zIndex: 2,
+                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
+                  }}
+                >
+                  <ArrowForwardIosIcon />
+                </IconButton>
+              )}
+
+              {/* Индикатор */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  color: 'white',
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  zIndex: 2,
+                  fontSize: '0.9rem'
+                }}
+              >
+                {selectedImageIndex + 1} / {project.image_urls.length}
+              </Box>
+            </>
+          )}
+
+          {/* Изображение */}
+          {project?.image_urls && selectedImageIndex !== null && (
             <Box
               component="img"
-              src={selectedImage}
-              alt="Project preview"
+              src={project.image_urls[selectedImageIndex]}
+              alt={`${project.title} ${selectedImageIndex + 1}`}
               sx={{
                 width: '100%',
                 height: 'auto',

@@ -75,19 +75,21 @@ const Header = () => {
 
   const handleDeveloperClick = (developer) => {
     setDrawerOpen(false);
-    navigate(`/developer/${developer.id}`);
+    // Используем экранированное имя вместо ID
+    const slug = developer.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    navigate(`/developer/${slug}`);
   };
 
   return (
     <>
-      {/* AppBar */}
+      {/* AppBar - ЗАКРЕПЛЕННЫЙ */}
       <motion.div
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <AppBar
-          position="sticky"
+          position="fixed" // Изменено с sticky на fixed
           elevation={scrolled ? 1 : 0}
           sx={{
             backgroundColor: scrolled
@@ -96,6 +98,7 @@ const Header = () => {
             backdropFilter: 'blur(10px)',
             borderBottom: `1px solid ${theme.palette.divider}`,
             transition: 'all 0.3s ease',
+            zIndex: theme.zIndex.appBar, // Убеждаемся что хедер поверх всего
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
@@ -120,6 +123,9 @@ const Header = () => {
           </Toolbar>
         </AppBar>
       </motion.div>
+
+      {/* Spacer для фиксированного хедера */}
+      <Toolbar />
 
       {/* Drawer */}
       <Drawer

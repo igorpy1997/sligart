@@ -1,6 +1,6 @@
 {
   "short_name": "Portfolio Admin",
-  "name": "Sligart Portfolio Admin Panel",
+  "name": "Portfolio Admin - Sligart Studio",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,6 +10,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#654C52",
   "background_color": "#ffffff"
 }

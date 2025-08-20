@@ -1,11 +1,16 @@
 // frontend/sligart-admin/src/components/admin/projects.js
-import React from 'react';
+import React, { useState } from 'react';
 import {
   List, Datagrid, TextField, BooleanField, DateField, NumberField,
   Edit, SimpleForm, TextInput, BooleanInput, NumberInput, SelectInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ReferenceArrayInput, AutocompleteArrayInput,
-  Filter, SearchInput, ReferenceArrayField, SingleFieldList, ChipField, ImageInput, ImageField
+  Filter, SearchInput, ReferenceArrayField, SingleFieldList, ChipField, ImageInput, ImageField,
+  useRecordContext, useNotify, useRefresh
 } from 'react-admin';
+import { Button, Box, Card, CardContent, IconButton, Typography } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 const ProjectFilter = (props) => (
   <Filter {...props}>
@@ -20,22 +25,6 @@ const ProjectFilter = (props) => (
       { id: 'mobile', name: 'Mobile' },
       { id: 'desktop', name: 'Desktop' },
       { id: 'api', name: 'API/Backend' },
-      { id: 'other', name: 'Other' }
-    ]} />
-    <SelectInput source="category" choices={[
-      { id: 'ecommerce', name: 'E-commerce' },
-      { id: 'corporate', name: 'Corporate' },
-      { id: 'saas', name: 'SaaS' },
-      { id: 'portfolio', name: 'Portfolio' },
-      { id: 'blog', name: 'Blog/CMS' },
-      { id: 'social', name: 'Social Network' },
-      { id: 'education', name: 'Education' },
-      { id: 'healthcare', name: 'Healthcare' },
-      { id: 'fintech', name: 'Fintech' },
-      { id: 'gaming', name: 'Gaming' },
-      { id: 'dashboard', name: 'Dashboard' },
-      { id: 'marketplace', name: 'Marketplace' },
-      { id: 'booking', name: 'Booking System' },
       { id: 'other', name: 'Other' }
     ]} />
     <BooleanInput source="featured" />
@@ -53,28 +42,166 @@ const DevelopersField = ({ record }) => (
   </div>
 );
 
-// Кастомный инпут для загрузки фотографий проекта
-const ProjectPhotosInput = (props) => {
-  return (
-    <div>
-      <ImageInput
-        source="project_photos"
-        label="Project Photos"
-        accept="image/*"
-        multiple
-        placeholder={<p>Drop images here, or click to select multiple photos</p>}
-        {...props}
-      >
-        <ImageField source="src" title="title" />
-      </ImageInput>
+// Простой компонент для загрузки фотографий с кнопкой
+const SimplePhotoUploader = () => {
+  const record = useRecordContext();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [uploading, setUploading] = useState(false);
 
-      {/* Показываем текущие фото если есть */}
-      <ArrayInput source="image_urls" label="Current Photos">
-        <SimpleFormIterator>
-          <TextInput source="" label="Photo URL" disabled />
-        </SimpleFormIterator>
-      </ArrayInput>
-    </div>
+  const handleFileUpload = async (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      notify('No auth token found', { type: 'error' });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append('photos', file);
+      });
+
+      console.log(`🚀 Uploading ${files.length} photos for project ${record.id}`);
+
+      const response = await fetch(`/api/admin/projects/${record.id}/photos`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        notify(`✅ Uploaded ${result.uploaded_urls?.length || files.length} photos!`, { type: 'success' });
+        refresh(); // Обновляем страницу
+      } else {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      notify(`❌ Upload failed: ${error.message}`, { type: 'error' });
+    } finally {
+      setUploading(false);
+      // Сбрасываем input
+      event.target.value = '';
+    }
+  };
+
+  const handleDeletePhoto = async (photoUrl) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      notify('No auth token found', { type: 'error' });
+      return;
+    }
+
+    try {
+      console.log(`🗑️ Deleting photo: ${photoUrl}`);
+
+      const response = await fetch(`/api/admin/projects/${record.id}/photos?photo_url=${encodeURIComponent(photoUrl)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        notify('🗑️ Photo deleted successfully', { type: 'success' });
+        refresh();
+      } else {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      notify(`❌ Delete failed: ${error.message}`, { type: 'error' });
+    }
+  };
+
+  if (!record?.id) {
+    return (
+      <Typography color="text.secondary">
+        Save the project first to manage photos
+      </Typography>
+    );
+  }
+
+  return (
+    <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 2, p: 2, my: 2 }}>
+      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <PhotoLibraryIcon />
+        Manage Project Photos
+      </Typography>
+
+      {/* Текущие фотографии */}
+      {record?.image_urls && record.image_urls.length > 0 ? (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Current Photos ({record.image_urls.length}):
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {record.image_urls.map((url, index) => (
+              <Card key={index} sx={{ width: 150 }}>
+                <Box
+                  component="img"
+                  src={url}
+                  alt={`Photo ${index + 1}`}
+                  sx={{
+                    width: '100%',
+                    height: 100,
+                    objectFit: 'cover',
+                  }}
+                />
+                <CardContent sx={{ p: 1, textAlign: 'center' }}>
+                  <IconButton
+                    color="error"
+                    onClick={() => handleDeletePhoto(url)}
+                    size="small"
+                    title="Delete photo"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        </Box>
+      ) : (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          No photos uploaded yet
+        </Typography>
+      )}
+
+      {/* Загрузка новых фотографий */}
+      <Box>
+        <Button
+          variant="outlined"
+          component="label"
+          startIcon={<CloudUploadIcon />}
+          disabled={uploading}
+          sx={{ mb: 1 }}
+        >
+          {uploading ? 'Uploading...' : 'Upload Photos'}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+        </Button>
+        <Typography variant="caption" display="block" color="text.secondary">
+          Select multiple image files to upload
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 
@@ -103,7 +230,8 @@ export const ProjectEdit = (props) => (
       <TextInput source="demo_url" />
       <TextInput source="github_url" />
 
-      <ProjectPhotosInput />
+      {/* Простой загрузчик фотографий */}
+      <SimplePhotoUploader />
 
       <SelectInput source="status" choices={[
         { id: 'active', name: 'Active' },
@@ -168,7 +296,16 @@ export const ProjectCreate = (props) => (
       <TextInput source="demo_url" />
       <TextInput source="github_url" />
 
-      <ProjectPhotosInput />
+      {/* Для создания используем стандартный ImageInput */}
+      <ImageInput
+        source="project_photos"
+        label="Project Photos"
+        accept="image/*"
+        multiple
+        placeholder={<p>Drop images here, or click to select multiple photos</p>}
+      >
+        <ImageField source="src" title="title" />
+      </ImageInput>
 
       <SelectInput source="status" choices={[
         { id: 'active', name: 'Active' },

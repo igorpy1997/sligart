@@ -8,20 +8,17 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Button,
   Tabs,
   Tab,
   Avatar,
   AvatarGroup,
-  IconButton,
   CircularProgress,
   Alert,
   useTheme,
   Paper,
 } from '@mui/material';
-import LaunchIcon from '@mui/icons-material/Launch';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { motion } from 'framer-motion';
@@ -190,7 +187,7 @@ const ProjectsPage = () => {
           </Paper>
         </FadeInUp>
 
-        {/* Projects Grid */}
+        {/* Projects Grid - БЕЗ ФОТОГРАФИЙ */}
         {projects.length > 0 ? (
           <StaggerContainer staggerDelay={0.1}>
             <Grid container spacing={3}>
@@ -215,17 +212,6 @@ const ProjectsPage = () => {
                         }
                       }}
                     >
-                      {/* Project Image */}
-                      {project.image_urls && project.image_urls.length > 0 && (
-                        <CardMedia
-                          component="img"
-                          height="200"
-                          image={project.image_urls[0]}
-                          alt={project.title}
-                          sx={{ objectFit: 'cover' }}
-                        />
-                      )}
-
                       <CardContent sx={{ flexGrow: 1, p: 3 }}>
                         {/* Category and Type */}
                         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
@@ -313,22 +299,8 @@ const ProjectsPage = () => {
                           </Box>
                         )}
 
-                        {/* Action Buttons */}
+                        {/* Action Buttons - БЕЗ DEMO */}
                         <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
-                          {project.demo_url && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              component="a"
-                              href={project.demo_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              endIcon={<LaunchIcon />}
-                              sx={{ fontSize: '0.8rem' }}
-                            >
-                              Demo
-                            </Button>
-                          )}
                           {project.github_url && (
                             <Button
                               size="small"
@@ -422,6 +394,7 @@ const ProjectsPage = () => {
                 <Button
                   variant="contained"
                   size="large"
+                  href="mailto:hello@sligart.studio"
                   sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
                 >
                   Start Your Project
@@ -429,8 +402,7 @@ const ProjectsPage = () => {
                 <Button
                   variant="outlined"
                   size="large"
-                  component={Link}
-                  to="/contact"
+                  href="mailto:hello@sligart.studio"
                   sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
                 >
                   Get in Touch
