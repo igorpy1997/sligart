@@ -1,0 +1,155 @@
+/* frontend/sligart-admin/public/admin-styles.css */
+
+/* Улучшаем общий вид админки */
+.RaLayout-root {
+  background-color: #f8fafc !important;
+}
+
+/* Красивые карточки */
+.RaList-main .MuiPaper-root,
+.RaEdit-main .MuiPaper-root,
+.RaShow-main .MuiPaper-root {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Заголовки страниц */
+.RaLayout-main h1 {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Таблицы */
+.RaDatagrid-table {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.RaDatagrid-headerCell {
+  background-color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.RaDatagrid-rowEven {
+  background-color: #f8fafc !important;
+}
+
+.RaDatagrid-rowOdd {
+  background-color: #ffffff !important;
+}
+
+/* Кнопки */
+.RaButton-root {
+  border-radius: 8px !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
+
+.RaButton-primary {
+  background: linear-gradient(45deg, #654C52, #B99099) !important;
+  border: none !important;
+}
+
+.RaButton-primary:hover {
+  background: linear-gradient(45deg, #70444C, #762E3F) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(101, 76, 82, 0.3) !important;
+}
+
+/* Фильтры */
+.RaList-actions .MuiPaper-root {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Формы */
+.RaSimpleForm-root .MuiTextField-root {
+  margin-bottom: 1rem !important;
+}
+
+.MuiOutlinedInput-root {
+  border-radius: 8px !important;
+}
+
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #654C52 !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #654C52 !important;
+  border-width: 2px !important;
+}
+
+/* Статистики и метрики */
+.admin-stats-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-stats-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Чипы и бейджи */
+.MuiChip-root {
+  font-weight: 500 !important;
+  letter-spacing: 0.025em !important;
+}
+
+/* Sidebar */
+.RaLayout-appFrame .RaSidebar-root {
+  background: linear-gradient(180deg, #654C52 0%, #70444C 100%) !important;
+}
+
+.RaMenuItemLink-root {
+  border-radius: 8px !important;
+  margin: 0 0.5rem !important;
+}
+
+.RaMenuItemLink-root:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.RaMenuItemLink-active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-left: 3px solid #B99099 !important;
+}
+
+/* AppBar */
+.RaLayout-appFrame .RaAppBar-root {
+  background: linear-gradient(90deg, #654C52 0%, #70444C 100%) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.RaList-main,
+.RaEdit-main,
+.RaShow-main {
+  animation: fadeIn 0.3s ease-out !important;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .RaLayout-main {
+    padding: 0.5rem !important;
+  }
+
+  .RaList-main .MuiPaper-root,
+  .RaEdit-main .MuiPaper-root,
+  .RaShow-main .MuiPaper-root {
+    margin: 0.5rem 0 !important;
+  }
+}

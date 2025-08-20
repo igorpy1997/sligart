@@ -1,4 +1,4 @@
-// frontend/frontend-app/src/pages/DeveloperPage.js
+// frontend/frontend-app/src/pages/DeveloperPage.js - ПОЛНАЯ ВЕРСИЯ
 import React, {useEffect, useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {
@@ -28,6 +28,10 @@ import CodeIcon from '@mui/icons-material/Code';
 import PersonIcon from '@mui/icons-material/Person';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
+// ИМПОРТЫ ДЛЯ ФОРМЫ
+import ContactForm from '../components/ContactForm';
+import { useContactForm } from '../hooks/useContactForm';
+
 const DeveloperPage = () => {
     const {developerSlug} = useParams();
     const navigate = useNavigate();
@@ -37,6 +41,9 @@ const DeveloperPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(0);
+
+    // ХУК ДЛЯ ФОРМЫ
+    const { isOpen, openForm, closeForm } = useContactForm();
 
     useEffect(() => {
         const loadDeveloperData = async () => {
@@ -62,7 +69,7 @@ const DeveloperPage = () => {
 
                 setDeveloper(targetDeveloper);
 
-                // ИСПРАВЛЯЕМ: Загружаем проекты конкретного разработчика
+                // Загружаем проекты конкретного разработчика
                 try {
                     const projectsResponse = await fetch(`/api/public/developers/${targetDeveloper.id}/projects?limit=20`);
                     if (projectsResponse.ok) {
@@ -71,11 +78,9 @@ const DeveloperPage = () => {
                         console.log(`📂 Loaded ${projectsData.length} projects for ${targetDeveloper.name}`);
                     } else {
                         console.log('⚠️ No specific projects endpoint, showing all projects');
-                        // Фоллбэк: загружаем все проекты и фильтруем локально
                         const allProjectsResponse = await fetch('/api/public/projects?limit=50');
                         if (allProjectsResponse.ok) {
                             const allProjects = await allProjectsResponse.json();
-                            // Фильтруем проекты где этот разработчик участвует
                             const developerProjects = allProjects.filter(project =>
                                 project.developers && project.developers.some(dev => dev.id === targetDeveloper.id)
                             );
@@ -85,7 +90,7 @@ const DeveloperPage = () => {
                     }
                 } catch (projectError) {
                     console.error('Error loading projects:', projectError);
-                    setProjects([]); // Устанавливаем пустой массив при ошибке
+                    setProjects([]);
                 }
 
             } catch (err) {
@@ -102,6 +107,15 @@ const DeveloperPage = () => {
 
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
+    };
+
+    // ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ФОРМЫ С ПРЕДЗАПОЛНЕННЫМИ ДАННЫМИ
+    const handleStartProject = () => {
+        openForm({
+            project_type: 'web',
+            description: `I'd like to discuss a project with ${developer?.name} (${developer?.specialization}). `,
+            source: `developer_page_${developer?.id}`
+        });
     };
 
     if (loading) {
@@ -267,12 +281,13 @@ const DeveloperPage = () => {
                                 </Box>
                             )}
 
-                            {/* CTA */}
+                            {/* CTA - КНОПКА ОТКРЫТИЯ ФОРМЫ */}
                             <Box sx={{mt: 3}}>
                                 <Button
                                     variant="contained"
                                     size="large"
                                     startIcon={<EmailIcon/>}
+                                    onClick={handleStartProject}
                                     sx={{
                                         px: 4,
                                         py: 1.5,
@@ -281,7 +296,6 @@ const DeveloperPage = () => {
                                             background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
                                         }
                                     }}
-                                    href="mailto:hello@sligart.studio"
                                 >
                                     Start a Project
                                 </Button>
@@ -468,6 +482,13 @@ const DeveloperPage = () => {
                     </Box>
                 </Paper>
             </Container>
+
+            {/* ФОРМА ОБРАТНОЙ СВЯЗИ */}
+            <ContactForm
+                open={isOpen}
+                onClose={closeForm}
+                initialProjectType=""
+            />
         </Box>
     );
 };

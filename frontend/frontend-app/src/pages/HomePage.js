@@ -6,6 +6,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CodeIcon from '@mui/icons-material/Code';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import CloudIcon from '@mui/icons-material/Cloud';
+import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 
 // Импорт анимаций
 import {AnimatedCounter, FadeInLeft, FadeInRight, FadeInUp,} from '../components/animations';
@@ -23,10 +24,17 @@ import {
     Section,
 } from '../components/styled/StyledComponents';
 
+// НОВЫЕ ИМПОРТЫ
+import ContactForm from '../components/ContactForm';
+import { useContactForm } from '../hooks/useContactForm';
+
 const HomePage = () => {
     const theme = useTheme();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // ИСПОЛЬЗУЕМ ХУК ДЛЯ ФОРМЫ
+    const { isOpen, openForm, closeForm } = useContactForm();
 
     // Load stats from API
     useEffect(() => {
@@ -94,6 +102,21 @@ const HomePage = () => {
         ];
     };
 
+    // ФУНКЦИИ ДЛЯ ОТКРЫТИЯ ФОРМЫ
+    const handleStartProjectClick = () => {
+        openForm({
+            project_type: 'web', // Задаем начальный тип проекта
+            source: 'hero_section'
+        });
+    };
+
+    const handleDiscussProjectClick = () => {
+        openForm({
+            project_type: '', // Пользователь сам выберет
+            source: 'cta_section'
+        });
+    };
+
     return (
         <Box sx={{position: 'relative', overflow: 'hidden'}}>
             {/* Декоративные блобы */}
@@ -152,7 +175,7 @@ const HomePage = () => {
                                             fontSize: '1.1rem',
                                             minWidth: 180,
                                         }}
-                                        href="mailto:hello@sligart.studio"
+                                        onClick={handleStartProjectClick} // ЗАМЕНИЛИ HREF НА ONCLICK
                                     >
                                         Start a Project
                                     </GradientButton>
@@ -326,15 +349,15 @@ const HomePage = () => {
                                     <HoverCard
                                         clickable
                                         sx={{
-                                            height: '100%', // Устанавливаем 100% высоту для равномерности
-                                            minHeight: 300, // Минимальная высота для всех карточек
+                                            height: '100%',
+                                            minHeight: 300,
                                             textAlign: 'center',
                                             p: 3,
                                             position: 'relative',
                                             overflow: 'hidden',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            justifyContent: 'space-between', // Распределяем содержимое равномерно
+                                            justifyContent: 'space-between',
                                         }}
                                     >
                                         <Box
@@ -379,7 +402,7 @@ const HomePage = () => {
                                                     color: theme.palette.text.secondary,
                                                     lineHeight: 1.6,
                                                     display: '-webkit-box',
-                                                    WebkitLineClamp: 3, // Ограничиваем до 3 строк
+                                                    WebkitLineClamp: 3,
                                                     WebkitBoxOrient: 'vertical',
                                                     overflow: 'hidden',
                                                 }}
@@ -465,6 +488,7 @@ const HomePage = () => {
                                         <GradientButton
                                             theme={theme}
                                             size="large"
+                                            startIcon={<ContactPhoneIcon/>} // ИЗМЕНИЛИ ИКОНКУ
                                             sx={{
                                                 px: 4,
                                                 py: 1.5,
@@ -472,7 +496,7 @@ const HomePage = () => {
                                                 fontWeight: 600,
                                                 minWidth: 180,
                                             }}
-                                            href="mailto:hello@sligart.studio"
+                                            onClick={handleDiscussProjectClick} // ЗАМЕНИЛИ HREF НА ONCLICK
                                         >
                                             Discuss Project
                                         </GradientButton>
@@ -508,6 +532,12 @@ const HomePage = () => {
                     </FadeInUp>
                 </Container>
             </Section>
+
+            {/* ДОБАВЛЯЕМ ФОРМУ ОБРАТНОЙ СВЯЗИ */}
+            <ContactForm
+                open={isOpen}
+                onClose={closeForm}
+            />
         </Box>
     );
 };

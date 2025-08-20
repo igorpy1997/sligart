@@ -1,3 +1,4 @@
+// frontend/frontend-app/src/pages/ProjectDetailPage.js - ПОЛНАЯ ВЕРСИЯ С ФОРМОЙ
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -20,10 +21,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LaunchIcon from '@mui/icons-material/Launch';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import EmailIcon from '@mui/icons-material/Email';
+import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 import { motion } from 'framer-motion';
 
 import { FadeInUp, FadeInLeft, FadeInRight } from '../components/animations';
 import ProjectGallery from '../components/ProjectGallery';
+// ИМПОРТЫ ДЛЯ ФОРМЫ
+import ContactForm from '../components/ContactForm';
+import { useContactForm } from '../hooks/useContactForm';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
@@ -33,6 +38,9 @@ const ProjectDetailPage = () => {
   const [relatedProjects, setRelatedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // ХУК ДЛЯ ФОРМЫ
+  const { isOpen, openForm, closeForm } = useContactForm();
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -45,7 +53,7 @@ const ProjectDetailPage = () => {
           throw new Error('Project not found');
         }
         const projectData = await projectResponse.json();
-        console.log('Project Data:', projectData); // Отладка данных проекта
+        console.log('Project Data:', projectData);
         setProject(projectData);
 
         // Load related projects (same category)
@@ -53,14 +61,14 @@ const ProjectDetailPage = () => {
           const relatedResponse = await fetch(`/api/public/projects?category=${projectData.category}&limit=6`);
           if (relatedResponse.ok) {
             const relatedData = await relatedResponse.json();
-            console.log('Related Projects:', relatedData); // Отладка связанных проектов
+            console.log('Related Projects:', relatedData);
             const filtered = relatedData.filter(p => p.id !== parseInt(projectId));
             setRelatedProjects(filtered.slice(0, 3));
           }
         }
 
       } catch (err) {
-        console.error('Error loading project:', err); // Отладка ошибок
+        console.error('Error loading project:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -71,6 +79,31 @@ const ProjectDetailPage = () => {
       loadProjectData();
     }
   }, [projectId]);
+
+  // ФУНКЦИИ ДЛЯ ОТКРЫТИЯ ФОРМЫ
+  const handleDiscussSimilarProject = () => {
+    openForm({
+      project_type: project?.project_type || 'web',
+      description: `I'm interested in a project similar to "${project?.title}". `,
+      source: `project_detail_${project?.id}`
+    });
+  };
+
+  const handleGetQuote = () => {
+    openForm({
+      project_type: project?.project_type || 'web',
+      description: `I need a quote for a project similar to "${project?.title}". Please provide details about timeline and pricing. `,
+      source: `project_sidebar_${project?.id}`
+    });
+  };
+
+  const handleStartSimilarProject = () => {
+    openForm({
+      project_type: project?.project_type || 'web',
+      description: `I want to start a project similar to "${project?.title}". `,
+      source: `project_cta_${project?.id}`
+    });
+  };
 
   const getCategoryDisplayName = (category) => {
     const categoryMap = {
@@ -133,6 +166,7 @@ const ProjectDetailPage = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+      {/* Header */}
       <Box sx={{ backgroundColor: theme.palette.background.paper, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Container maxWidth="lg" sx={{ py: 2 }}>
           <Button
@@ -146,6 +180,7 @@ const ProjectDetailPage = () => {
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Project Header */}
         <FadeInUp>
           <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
             <Grid container spacing={4}>
@@ -230,7 +265,7 @@ const ProjectDetailPage = () => {
                     variant="outlined"
                     size="large"
                     startIcon={<EmailIcon />}
-                    href="mailto:hello@sligart.studio"
+                    onClick={handleDiscussSimilarProject}
                     sx={{ px: 4 }}
                   >
                     Discuss Similar Project
@@ -284,6 +319,7 @@ const ProjectDetailPage = () => {
 
         <Grid container spacing={4}>
           <Grid item xs={12} md={8}>
+            {/* Project Gallery */}
             {project.image_urls && project.image_urls.length > 0 ? (
               <FadeInLeft>
                 <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
@@ -303,6 +339,7 @@ const ProjectDetailPage = () => {
               </FadeInLeft>
             )}
 
+            {/* Project Description */}
             {project.description && (
               <FadeInLeft delay={0.2}>
                 <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
@@ -323,6 +360,7 @@ const ProjectDetailPage = () => {
               </FadeInLeft>
             )}
 
+            {/* Technical Details */}
             <FadeInLeft delay={0.3}>
               <Paper sx={{ p: 4, borderRadius: 3 }}>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
@@ -366,10 +404,12 @@ const ProjectDetailPage = () => {
             </FadeInLeft>
           </Grid>
 
+          {/* Sidebar */}
           <Grid item xs={12} md={4}>
+            {/* Related Projects */}
             {relatedProjects.length > 0 && (
               <FadeInRight>
-                <Paper sx={{ p: 3, borderRadius: 3 }}>
+                <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
                     Related Projects
                   </Typography>
@@ -442,11 +482,11 @@ const ProjectDetailPage = () => {
               </FadeInRight>
             )}
 
+            {/* CTA Card */}
             <FadeInRight delay={0.2}>
               <Paper
                 sx={{
                   p: 3,
-                  mt: 3,
                   borderRadius: 3,
                   background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
                   border: `1px solid ${theme.palette.primary.main}30`
@@ -469,9 +509,15 @@ const ProjectDetailPage = () => {
                 <Button
                   variant="contained"
                   fullWidth
-                  startIcon={<EmailIcon />}
-                  href="mailto:hello@sligart.studio"
-                  sx={{ mb: 2 }}
+                  startIcon={<ContactPhoneIcon />}
+                  onClick={handleGetQuote}
+                  sx={{
+                    mb: 2,
+                    background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    '&:hover': {
+                      background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                    }
+                  }}
                 >
                   Get Quote
                 </Button>
@@ -487,7 +533,99 @@ const ProjectDetailPage = () => {
             </FadeInRight>
           </Grid>
         </Grid>
+
+        {/* Bottom CTA Section */}
+        <FadeInUp delay={0.5}>
+          <Paper
+            sx={{
+              mt: 6,
+              p: 6,
+              textAlign: 'center',
+              borderRadius: 3,
+              background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${theme.palette.primary.main}08)`,
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              whileInView={{ scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 2,
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Ready to Start Your Project?
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  mb: 4,
+                  maxWidth: 600,
+                  mx: 'auto',
+                  lineHeight: 1.6
+                }}
+              >
+                Inspired by this project? Let's build something even better together.
+                Get a free consultation and detailed project estimate.
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<ContactPhoneIcon />}
+                    onClick={handleStartSimilarProject}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1.1rem',
+                      background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                      '&:hover': {
+                        background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                      }
+                    }}
+                  >
+                    Start Similar Project
+                  </Button>
+                </motion.div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    component={Link}
+                    to="/projects"
+                    sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+                  >
+                    View More Projects
+                  </Button>
+                </motion.div>
+              </Box>
+            </motion.div>
+          </Paper>
+        </FadeInUp>
       </Container>
+
+      {/* ФОРМА ОБРАТНОЙ СВЯЗИ */}
+      <ContactForm
+        open={isOpen}
+        onClose={closeForm}
+        initialProjectType={project?.project_type || ''}
+      />
     </Box>
   );
 };
