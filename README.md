@@ -10,7 +10,7 @@ bash setup_caddy.sh
 ```
 
 ### 2. Configure Environment
-Create `.env.docker` file with your credentials:
+Create **both** `.env.docker` and `.env` files with identical content:
 
 ```env
 # Domain Configuration
@@ -30,6 +30,10 @@ R2_SECRET_ACCESS_KEY=your_secret_key
 R2_BUCKET_NAME=your-bucket-name
 R2_PUBLIC_URL=https://pub-your-bucket-id.r2.dev
 ```
+
+**Why both files?**
+- `.env.docker` - Used by Docker services
+- `.env` - Used by Makefile commands
 
 **Important:** Configure Caddy domain format in `caddy/Caddyfile`:
 - **For ngrok**: Use `{$NGROK_DOMAIN}:80` (forces HTTP)
