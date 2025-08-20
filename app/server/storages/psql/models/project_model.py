@@ -36,7 +36,6 @@ class DBProjectModel(Base):
         "DBDeveloperModel",
         secondary=project_developers,
         back_populates="projects",
-        lazy="selectin"  # Добавил это чтобы избежать lazy loading
     )
 
     def __repr__(self) -> str:

@@ -8,7 +8,6 @@ from datetime import datetime
 import json
 
 from storages.psql.models.project_model import DBProjectModel
-from storages.psql.models.developer_model import DBDeveloperModel
 from services.r2_service import R2Service
 from settings import Settings
 
@@ -156,105 +155,7 @@ async def get_project(project_id: int, request: Request):
 
         return project_to_dict(project)
 
-# Замени create_project функцию в app/server/routers/admin/projects.py
 
-
-@router.post("")
-async def create_project(project: ProjectCreate, request: Request):
-    async with request.app.state.db_session() as db:
-        # Создаем проект
-        project_data = project.dict()
-        developer_ids = project_data.pop("developer_ids", [])
-
-        db_project = DBProjectModel(**project_data)
-        db.add(db_project)
-        await db.flush()  # Получаем ID проекта, но не коммитим транзакцию
-
-        # Добавляем разработчиков если есть
-        if developer_ids:
-            # Получаем разработчиков в рамках той же транзакции
-            developers_query = select(DBDeveloperModel).where(
-                DBDeveloperModel.id.in_(developer_ids)
-            )
-            developers_result = await db.execute(developers_query)
-            developers = developers_result.scalars().all()
-
-            # Добавляем связи через промежуточную таблицу
-            for developer in developers:
-                db_project.developers.append(developer)
-
-        # Коммитим все изменения
-        await db.commit()
-
-        # Обновляем объект после коммита
-        await db.refresh(db_project)
-
-        # Заново загружаем проект с включенными связями
-        fresh_query = (
-            select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
-            .where(DBProjectModel.id == db_project.id)
-        )
-        fresh_result = await db.execute(fresh_query)
-        fresh_project = fresh_result.scalar_one()
-
-        return project_to_dict(fresh_project)
-
-# Замени update_project функцию в app/server/routers/admin/projects.py
-
-
-@router.put("/{project_id}")
-async def update_project(project_id: int, project: ProjectUpdate, request: Request):
-    async with request.app.state.db_session() as db:
-        # Загружаем проект с существующими связями
-        query = (
-            select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
-            .where(DBProjectModel.id == project_id)
-        )
-        result = await db.execute(query)
-        db_project = result.scalar_one_or_none()
-
-        if not db_project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        # Обновляем поля
-        update_data = project.dict(exclude_unset=True)
-        developer_ids = update_data.pop("developer_ids", None)
-
-        for field, value in update_data.items():
-            setattr(db_project, field, value)
-
-        # Обновляем разработчиков если переданы
-        if developer_ids is not None:
-            # Очищаем существующие связи
-            db_project.developers.clear()
-
-            # Добавляем новые связи
-            if developer_ids:
-                developers_query = select(DBDeveloperModel).where(
-                    DBDeveloperModel.id.in_(developer_ids)
-                )
-                developers_result = await db.execute(developers_query)
-                developers = developers_result.scalars().all()
-
-                for developer in developers:
-                    db_project.developers.append(developer)
-
-        # Коммитим изменения
-        await db.commit()
-        await db.refresh(db_project)
-
-        # Заново загружаем проект с обновленными связями
-        fresh_query = (
-            select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
-            .where(DBProjectModel.id == project_id)
-        )
-        fresh_result = await db.execute(fresh_query)
-        fresh_project = fresh_result.scalar_one()
-
-        return project_to_dict(fresh_project)
 @router.delete("/{project_id}")
 async def delete_project(
         project_id: int,
@@ -416,3 +317,99 @@ async def get_projects_stats_by_category(request: Request):
         stats = {row.category or "Uncategorized": row.count for row in result}
 
         return {"by_category": stats}
+
+# app/server/routers/admin/projects.py
+# Заменяем функцию create_project
+
+@router.post("")
+async def create_project(project: ProjectCreate, request: Request):
+    async with request.app.state.db_session() as db:
+        # Создаем проект БЕЗ связей
+        project_data = project.dict()
+        developer_ids = project_data.pop("developer_ids", [])
+
+        db_project = DBProjectModel(**project_data)
+        db.add(db_project)
+        await db.flush()  # Получаем ID проекта
+
+        # Добавляем связи через raw SQL или insert statements
+        if developer_ids:
+            # Импортируем Table для прямых операций
+            from storages.psql.models.project_model import project_developers
+            from sqlalchemy import insert
+
+            # Создаем записи в промежуточной таблице
+            stmt = insert(project_developers).values([
+                {"project_id": db_project.id, "developer_id": dev_id}
+                for dev_id in developer_ids
+            ])
+            await db.execute(stmt)
+
+        await db.commit()
+        await db.refresh(db_project)
+
+        # Загружаем проект с связями для ответа
+        fresh_query = (
+            select(DBProjectModel)
+            .options(selectinload(DBProjectModel.developers))
+            .where(DBProjectModel.id == db_project.id)
+        )
+        fresh_result = await db.execute(fresh_query)
+        fresh_project = fresh_result.scalar_one()
+
+        return project_to_dict(fresh_project)
+
+
+@router.put("/{project_id}")
+async def update_project(project_id: int, project: ProjectUpdate, request: Request):
+    async with request.app.state.db_session() as db:
+        # Загружаем проект
+        query = (
+            select(DBProjectModel)
+            .options(selectinload(DBProjectModel.developers))
+            .where(DBProjectModel.id == project_id)
+        )
+        result = await db.execute(query)
+        db_project = result.scalar_one_or_none()
+
+        if not db_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Обновляем простые поля
+        update_data = project.dict(exclude_unset=True)
+        developer_ids = update_data.pop("developer_ids", None)
+
+        for field, value in update_data.items():
+            setattr(db_project, field, value)
+
+        # Обновляем связи с разработчиками
+        if developer_ids is not None:
+            from storages.psql.models.project_model import project_developers
+            from sqlalchemy import delete, insert
+
+            # Удаляем старые связи
+            delete_stmt = delete(project_developers).where(
+                project_developers.c.project_id == project_id
+            )
+            await db.execute(delete_stmt)
+
+            # Добавляем новые связи
+            if developer_ids:
+                insert_stmt = insert(project_developers).values([
+                    {"project_id": project_id, "developer_id": dev_id}
+                    for dev_id in developer_ids
+                ])
+                await db.execute(insert_stmt)
+
+        await db.commit()
+
+        # Заново загружаем проект с обновленными связями
+        fresh_query = (
+            select(DBProjectModel)
+            .options(selectinload(DBProjectModel.developers))
+            .where(DBProjectModel.id == project_id)
+        )
+        fresh_result = await db.execute(fresh_query)
+        fresh_project = fresh_result.scalar_one()
+
+        return project_to_dict(fresh_project)

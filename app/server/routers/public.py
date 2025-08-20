@@ -168,10 +168,9 @@ async def get_projects(
         request: Request,
         featured_only: bool = False,
         project_type: Optional[str] = None,
-        category: Optional[str] = None,  # Новый фильтр по категории
+        category: Optional[str] = None,
         limit: int = 12
 ):
-    """Get list of projects for public display with category filter"""
     async with request.app.state.db_session() as db:
         query = select(DBProjectModel).options(selectinload(DBProjectModel.developers)).where(DBProjectModel.status == "active")
 
@@ -192,8 +191,8 @@ async def get_projects(
         # Преобразуем в PublicProject с информацией о разработчиках
         response_data = []
         for project in projects:
-            project_data = PublicProject.from_orm(project)
-            project_data.developers = [
+            project_dict = project.__dict__.copy()  # Копируем атрибуты проекта
+            project_dict["developers"] = [
                 {
                     "id": dev.id,
                     "name": dev.name,
@@ -202,13 +201,13 @@ async def get_projects(
                 }
                 for dev in project.developers
             ] if project.developers else []
+            project_data = PublicProject.model_validate(project_dict, from_attributes=True)
             response_data.append(project_data)
 
         return response_data
 
 @router.get("/projects/{project_id}", response_model=PublicProject)
 async def get_project(project_id: int, request: Request):
-    """Get single project by ID with developers info"""
     async with request.app.state.db_session() as db:
         query = select(DBProjectModel).options(selectinload(DBProjectModel.developers)).where(
             DBProjectModel.id == project_id,
@@ -220,8 +219,9 @@ async def get_project(project_id: int, request: Request):
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        project_data = PublicProject.from_orm(project)
-        project_data.developers = [
+        # Преобразуем данные проекта в словарь, включая разработчиков
+        project_dict = project.__dict__.copy()  # Копируем атрибуты проекта
+        project_dict["developers"] = [
             {
                 "id": dev.id,
                 "name": dev.name,
@@ -233,6 +233,8 @@ async def get_project(project_id: int, request: Request):
             for dev in project.developers
         ] if project.developers else []
 
+        # Валидируем словарь с помощью Pydantic v2
+        project_data = PublicProject.model_validate(project_dict, from_attributes=True)
         return project_data
 
 @router.get("/projects/categories/list")
