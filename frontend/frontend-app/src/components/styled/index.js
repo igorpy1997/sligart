@@ -1,0 +1,21 @@
+// src/components/styled/index.js
+export {
+  AnimatedContainer,
+  GradientBox,
+  HoverCard,
+  GlassCard,
+  MagneticButton,
+  GradientButton,
+  GradientText,
+  AnimatedText,
+  Section,
+  HeroSection,
+  FloatingElement,
+  PulseBox,
+  MasonryGrid,
+  FlexCenter,
+  DecorativeBlob,
+  Overlay,
+  ModalContent,
+  SkeletonBox,
+} from './StyledComponents';

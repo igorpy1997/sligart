@@ -1,4 +1,3 @@
-// frontend/frontend-app/src/pages/ProjectDetailPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -11,27 +10,20 @@ import {
   Chip,
   Button,
   Avatar,
-  IconButton,
   CircularProgress,
   Alert,
   useTheme,
   Paper,
-  ImageList,
-  ImageListItem,
-  Dialog,
-  DialogContent,
   Divider
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LaunchIcon from '@mui/icons-material/Launch';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import EmailIcon from '@mui/icons-material/Email';
-import CloseIcon from '@mui/icons-material/Close';
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { motion } from 'framer-motion';
 
 import { FadeInUp, FadeInLeft, FadeInRight } from '../components/animations';
+import ProjectGallery from '../components/ProjectGallery';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
@@ -41,7 +33,6 @@ const ProjectDetailPage = () => {
   const [relatedProjects, setRelatedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -54,6 +45,7 @@ const ProjectDetailPage = () => {
           throw new Error('Project not found');
         }
         const projectData = await projectResponse.json();
+        console.log('Project Data:', projectData); // Отладка данных проекта
         setProject(projectData);
 
         // Load related projects (same category)
@@ -61,13 +53,14 @@ const ProjectDetailPage = () => {
           const relatedResponse = await fetch(`/api/public/projects?category=${projectData.category}&limit=6`);
           if (relatedResponse.ok) {
             const relatedData = await relatedResponse.json();
-            // Filter out current project
+            console.log('Related Projects:', relatedData); // Отладка связанных проектов
             const filtered = relatedData.filter(p => p.id !== parseInt(projectId));
             setRelatedProjects(filtered.slice(0, 3));
           }
         }
 
       } catch (err) {
+        console.error('Error loading project:', err); // Отладка ошибок
         setError(err.message);
       } finally {
         setLoading(false);
@@ -95,7 +88,7 @@ const ProjectDetailPage = () => {
       'marketplace': 'Marketplace',
       'booking': 'Booking System'
     };
-    return categoryMap[category] || category.charAt(0).toUpperCase() + category.slice(1);
+    return categoryMap[category] || (category ? category.charAt(0).toUpperCase() + category.slice(1) : 'General');
   };
 
   const getProjectTypeColor = (type) => {
@@ -107,19 +100,6 @@ const ProjectDetailPage = () => {
       'other': theme.palette.warning.main
     };
     return colors[type] || theme.palette.grey[500];
-  };
-
-  // Навигация по изображениям в модальном окне
-  const handlePrevImage = () => {
-    if (selectedImageIndex > 0) {
-      setSelectedImageIndex(selectedImageIndex - 1);
-    }
-  };
-
-  const handleNextImage = () => {
-    if (project?.image_urls && selectedImageIndex < project.image_urls.length - 1) {
-      setSelectedImageIndex(selectedImageIndex + 1);
-    }
   };
 
   if (loading) {
@@ -153,7 +133,6 @@ const ProjectDetailPage = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
-      {/* Header with back button */}
       <Box sx={{ backgroundColor: theme.palette.background.paper, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Container maxWidth="lg" sx={{ py: 2 }}>
           <Button
@@ -167,12 +146,10 @@ const ProjectDetailPage = () => {
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Project Header */}
         <FadeInUp>
           <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
             <Grid container spacing={4}>
               <Grid item xs={12} md={8}>
-                {/* Tags */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
                   {project.category && (
                     <Chip
@@ -202,12 +179,10 @@ const ProjectDetailPage = () => {
                   )}
                 </Box>
 
-                {/* Title */}
                 <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
                   {project.title}
                 </Typography>
 
-                {/* Short Description */}
                 {project.short_description && (
                   <Typography
                     variant="h6"
@@ -222,7 +197,6 @@ const ProjectDetailPage = () => {
                   </Typography>
                 )}
 
-                {/* Action Buttons */}
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                   {project.demo_url && (
                     <Button
@@ -264,7 +238,6 @@ const ProjectDetailPage = () => {
                 </Box>
               </Grid>
 
-              {/* Team Members */}
               <Grid item xs={12} md={4}>
                 {project.developers && project.developers.length > 0 && (
                   <Card variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
@@ -310,42 +283,26 @@ const ProjectDetailPage = () => {
         </FadeInUp>
 
         <Grid container spacing={4}>
-          {/* Main Content */}
           <Grid item xs={12} md={8}>
-            {/* Project Images - ОБНОВЛЕННЫЙ БЛОК */}
-            {project.image_urls && project.image_urls.length > 0 && (
+            {project.image_urls && project.image_urls.length > 0 ? (
               <FadeInLeft>
                 <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-                  <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-                    Project Gallery ({project.image_urls.length} photos)
+                  <ProjectGallery
+                    images={project.image_urls}
+                    projectTitle={project.title}
+                  />
+                </Paper>
+              </FadeInLeft>
+            ) : (
+              <FadeInLeft>
+                <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No images available for this project.
                   </Typography>
-
-                  {/* Отображаем все изображения */}
-                  <ImageList variant="masonry" cols={project.image_urls.length === 1 ? 1 : 2} gap={16}>
-                    {project.image_urls.map((image, index) => (
-                      <ImageListItem key={index}>
-                        <motion.img
-                          src={image}
-                          alt={`${project.title} ${index + 1}`}
-                          loading="lazy"
-                          style={{
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            width: '100%',
-                            height: 'auto'
-                          }}
-                          whileHover={{ scale: 1.02 }}
-                          transition={{ duration: 0.2 }}
-                          onClick={() => setSelectedImageIndex(index)}
-                        />
-                      </ImageListItem>
-                    ))}
-                  </ImageList>
                 </Paper>
               </FadeInLeft>
             )}
 
-            {/* Project Description */}
             {project.description && (
               <FadeInLeft delay={0.2}>
                 <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
@@ -365,11 +322,51 @@ const ProjectDetailPage = () => {
                 </Paper>
               </FadeInLeft>
             )}
+
+            <FadeInLeft delay={0.3}>
+              <Paper sx={{ p: 4, borderRadius: 3 }}>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+                  Technical Details
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                      Project Type
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+                      {project.project_type?.toUpperCase() || 'Web Application'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                      Duration
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+                      {project.duration_months ? `${project.duration_months} ${project.duration_months === 1 ? 'month' : 'months'}` : 'Not specified'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                      Category
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+                      {project.category ? getCategoryDisplayName(project.category) : 'General'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                      Team Size
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+                      {project.developers?.length || 1} {project.developers?.length === 1 ? 'developer' : 'developers'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </FadeInLeft>
           </Grid>
 
-          {/* Sidebar */}
           <Grid item xs={12} md={4}>
-            {/* Related Projects */}
             {relatedProjects.length > 0 && (
               <FadeInRight>
                 <Paper sx={{ p: 3, borderRadius: 3 }}>
@@ -444,116 +441,53 @@ const ProjectDetailPage = () => {
                 </Paper>
               </FadeInRight>
             )}
+
+            <FadeInRight delay={0.2}>
+              <Paper
+                sx={{
+                  p: 3,
+                  mt: 3,
+                  borderRadius: 3,
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
+                  border: `1px solid ${theme.palette.primary.main}30`
+                }}
+              >
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, textAlign: 'center' }}>
+                  Need Similar Project?
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    mb: 3,
+                    textAlign: 'center',
+                    lineHeight: 1.6
+                  }}
+                >
+                  Let's discuss your requirements and create something amazing together.
+                </Typography>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<EmailIcon />}
+                  href="mailto:hello@sligart.studio"
+                  sx={{ mb: 2 }}
+                >
+                  Get Quote
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  component={Link}
+                  to="/projects"
+                >
+                  View Portfolio
+                </Button>
+              </Paper>
+            </FadeInRight>
           </Grid>
         </Grid>
       </Container>
-
-      {/* Image Preview Dialog - ОБНОВЛЕННЫЙ БЛОК С НАВИГАЦИЕЙ */}
-      <Dialog
-        open={selectedImageIndex !== null}
-        onClose={() => setSelectedImageIndex(null)}
-        maxWidth="lg"
-        fullWidth
-        PaperProps={{
-          sx: { backgroundColor: 'transparent', boxShadow: 'none' }
-        }}
-      >
-        <DialogContent sx={{ p: 1, position: 'relative' }}>
-          {/* Кнопка закрытия */}
-          <IconButton
-            onClick={() => setSelectedImageIndex(null)}
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              color: 'white',
-              zIndex: 2,
-              '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-
-          {/* Навигация по изображениям */}
-          {project?.image_urls && project.image_urls.length > 1 && (
-            <>
-              {/* Предыдущее изображение */}
-              {selectedImageIndex > 0 && (
-                <IconButton
-                  onClick={handlePrevImage}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: 16,
-                    transform: 'translateY(-50%)',
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    color: 'white',
-                    zIndex: 2,
-                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
-                  }}
-                >
-                  <ArrowBackIosIcon />
-                </IconButton>
-              )}
-
-              {/* Следующее изображение */}
-              {selectedImageIndex < project.image_urls.length - 1 && (
-                <IconButton
-                  onClick={handleNextImage}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: 16,
-                    transform: 'translateY(-50%)',
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    color: 'white',
-                    zIndex: 2,
-                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
-                  }}
-                >
-                  <ArrowForwardIosIcon />
-                </IconButton>
-              )}
-
-              {/* Индикатор */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 16,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  color: 'white',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 2,
-                  zIndex: 2,
-                  fontSize: '0.9rem'
-                }}
-              >
-                {selectedImageIndex + 1} / {project.image_urls.length}
-              </Box>
-            </>
-          )}
-
-          {/* Изображение */}
-          {project?.image_urls && selectedImageIndex !== null && (
-            <Box
-              component="img"
-              src={project.image_urls[selectedImageIndex]}
-              alt={`${project.title} ${selectedImageIndex + 1}`}
-              sx={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: 2,
-                maxHeight: '90vh',
-                objectFit: 'contain'
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 };

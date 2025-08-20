@@ -1,4 +1,3 @@
-// frontend/frontend-app/src/pages/HomePage.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -10,7 +9,6 @@ import {
   CardContent,
   useTheme,
   CircularProgress,
-  Paper,
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -19,13 +17,26 @@ import CodeIcon from '@mui/icons-material/Code';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import CloudIcon from '@mui/icons-material/Cloud';
 
-// Простые анимационные компоненты
+// Импорт анимаций
 import {
   FadeInUp,
   FadeInLeft,
   FadeInRight,
   AnimatedCounter,
 } from '../components/animations';
+
+// Импорт стилизованных компонентов
+import {
+  HeroSection,
+  Section,
+  GradientText,
+  GradientButton,
+  HoverCard,
+  GlassCard,
+  DecorativeBlob,
+  FloatingElement,
+  FlexCenter,
+} from '../components/styled/StyledComponents';
 
 const HomePage = () => {
   const theme = useTheme();
@@ -69,17 +80,20 @@ const HomePage = () => {
     {
       icon: <CodeIcon sx={{ fontSize: 48, color: theme.palette.primary.main }} />,
       title: 'Web Development',
-      description: 'Building modern web applications with cutting-edge technologies and best practices'
+      description: 'Building modern web applications with cutting-edge technologies and best practices',
+      color: theme.palette.primary.main,
     },
     {
       icon: <DesignServicesIcon sx={{ fontSize: 48, color: theme.palette.secondary.main }} />,
       title: 'UI/UX Design',
-      description: 'Creating intuitive interfaces that users love to interact with'
+      description: 'Creating intuitive interfaces that users love to interact with',
+      color: theme.palette.secondary.main,
     },
     {
       icon: <CloudIcon sx={{ fontSize: 48, color: theme.palette.primary.light }} />,
       title: 'DevOps & Hosting',
-      description: 'Ensuring reliable infrastructure and security for your projects'
+      description: 'Ensuring reliable infrastructure and security for your projects',
+      color: theme.palette.primary.light,
     }
   ];
 
@@ -96,33 +110,29 @@ const HomePage = () => {
   };
 
   return (
-    <Box>
+    <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Декоративные блобы */}
+      <DecorativeBlob className="blob-1" size="300px" />
+      <DecorativeBlob className="blob-2" size="250px" />
+      <DecorativeBlob className="blob-3" size="200px" />
+
       {/* Hero Section */}
-      <Box
-        sx={{
-          minHeight: '85vh',
-          display: 'flex',
-          alignItems: 'center',
-          backgroundColor: theme.palette.background.default,
-          position: 'relative',
-        }}
-      >
+      <HeroSection theme={theme}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6}>
               <FadeInLeft>
-                <Typography
+                <GradientText
                   variant="h1"
+                  theme={theme}
                   sx={{
                     fontSize: { xs: '2.5rem', md: '3.5rem' },
-                    fontWeight: 700,
                     mb: 3,
-                    color: theme.palette.text.primary,
                     lineHeight: 1.2,
                   }}
                 >
                   Creating Digital Solutions for the Future
-                </Typography>
+                </GradientText>
               </FadeInLeft>
 
               <FadeInLeft delay={0.2}>
@@ -142,9 +152,9 @@ const HomePage = () => {
               </FadeInLeft>
 
               <FadeInLeft delay={0.4}>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <Button
-                    variant="contained"
+                <FlexCenter sx={{ justifyContent: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+                  <GradientButton
+                    theme={theme}
                     size="large"
                     endIcon={<ArrowForwardIcon />}
                     sx={{
@@ -155,7 +165,7 @@ const HomePage = () => {
                     href="mailto:hello@sligart.studio"
                   >
                     Start a Project
-                  </Button>
+                  </GradientButton>
 
                   <Button
                     variant="outlined"
@@ -170,162 +180,193 @@ const HomePage = () => {
                   >
                     View Our Work
                   </Button>
-                </Box>
+                </FlexCenter>
               </FadeInLeft>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <FadeInRight delay={0.3}>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    textAlign: 'center',
-                  }}
-                >
-                  <Paper
-                    elevation={3}
-                    sx={{
-                      p: 6,
-                      height: 400,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      borderRadius: 3,
-                      backgroundColor: theme.palette.background.paper,
+                <FloatingElement theme={theme}>
+                  <motion.div
+                    animate={{
+                      y: [0, -20, 0],
+                      rotate: [0, 5, 0],
+                    }}
+                    transition={{
+                      duration: 6,
+                      repeat: Infinity,
+                      ease: "easeInOut",
                     }}
                   >
-                    <Box
+                    <GlassCard
+                      elevation={3}
                       sx={{
-                        width: 120,
-                        height: 120,
-                        borderRadius: '50%',
-                        backgroundColor: theme.palette.primary.main,
+                        p: 6,
+                        height: 400,
                         display: 'flex',
-                        alignItems: 'center',
+                        flexDirection: 'column',
                         justifyContent: 'center',
-                        mb: 3,
-                        color: 'white',
+                        alignItems: 'center',
+                        borderRadius: 3,
                       }}
                     >
-                      <Typography variant="h2">S</Typography>
-                    </Box>
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Box
+                          sx={{
+                            width: 120,
+                            height: 120,
+                            borderRadius: '50%',
+                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: 3,
+                            color: 'white',
+                            boxShadow: `0 10px 30px ${theme.palette.primary.main}40`,
+                          }}
+                        >
+                          <Typography variant="h2" sx={{ fontWeight: 700 }}>S</Typography>
+                        </Box>
+                      </motion.div>
 
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontWeight: 700,
-                        mb: 2,
-                        color: theme.palette.text.primary,
-                      }}
-                    >
-                      Sligart Studio
-                    </Typography>
+                      <GradientText
+                        variant="h4"
+                        theme={theme}
+                        sx={{ mb: 2 }}
+                      >
+                        Sligart Studio
+                      </GradientText>
 
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        textAlign: 'center',
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      Professional development team ready to bring your ideas to life
-                    </Typography>
-                  </Paper>
-                </Box>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          textAlign: 'center',
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Professional development team ready to bring your ideas to life
+                      </Typography>
+                    </GlassCard>
+                  </motion.div>
+                </FloatingElement>
               </FadeInRight>
             </Grid>
           </Grid>
         </Container>
-      </Box>
+      </HeroSection>
 
       {/* Statistics */}
-      <Box sx={{ py: 6, backgroundColor: theme.palette.background.paper }}>
+      <Section gradient theme={theme}>
         <Container maxWidth="lg">
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <FlexCenter sx={{ p: 4 }}>
               <CircularProgress />
-            </Box>
+            </FlexCenter>
           ) : (
             <FadeInUp>
               <Grid container spacing={4}>
                 {getStatsDisplay().map((stat, index) => (
                   <Grid item xs={6} md={3} key={index}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography
-                        variant="h3"
-                        sx={{
-                          fontWeight: 700,
-                          color: theme.palette.primary.main,
-                          mb: 1
-                        }}
-                      >
-                        <AnimatedCounter
-                          value={stat.number}
-                          duration={2}
-                          delay={index * 0.2}
-                        />
-                        {stat.suffix}
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{ color: theme.palette.text.secondary }}
-                      >
-                        {stat.label}
-                      </Typography>
-                    </Box>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FlexCenter column sx={{ textAlign: 'center' }}>
+                        <GradientText
+                          variant="h3"
+                          theme={theme}
+                          sx={{ mb: 1 }}
+                        >
+                          <AnimatedCounter
+                            value={stat.number}
+                            duration={2}
+                            delay={index * 0.2}
+                          />
+                          {stat.suffix}
+                        </GradientText>
+                        <Typography
+                          variant="body1"
+                          sx={{ color: theme.palette.text.secondary }}
+                        >
+                          {stat.label}
+                        </Typography>
+                      </FlexCenter>
+                    </motion.div>
                   </Grid>
                 ))}
               </Grid>
             </FadeInUp>
           )}
         </Container>
-      </Box>
+      </Section>
 
       {/* Our Services */}
-      <Box sx={{ py: 8 }}>
+      <Section theme={theme}>
         <Container maxWidth="lg">
           <FadeInUp>
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
-              <Typography
+            <FlexCenter column sx={{ textAlign: 'center', mb: 6 }}>
+              <GradientText
                 variant="h2"
-                sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  color: theme.palette.text.primary,
-                }}
+                theme={theme}
+                sx={{ mb: 2 }}
               >
                 What We Do
-              </Typography>
+              </GradientText>
               <Typography
                 variant="h6"
                 sx={{
                   color: theme.palette.text.secondary,
                   maxWidth: 600,
-                  mx: 'auto'
                 }}
               >
                 Full development cycle from idea to launch and support
               </Typography>
-            </Box>
+            </FlexCenter>
           </FadeInUp>
 
           <Grid container spacing={4}>
             {features.map((feature, index) => (
               <Grid item xs={12} md={4} key={index}>
                 <FadeInUp delay={index * 0.1}>
-                  <Card
+                  <HoverCard
+                    clickable
                     sx={{
-                      height: '100%',
+                      height: '100%', // Устанавливаем 100% высоту для равномерности
+                      minHeight: 300, // Минимальная высота для всех карточек
                       textAlign: 'center',
                       p: 3,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between', // Распределяем содержимое равномерно
                     }}
                   >
-                    <CardContent>
-                      <Box sx={{ mb: 3 }}>
-                        {feature.icon}
-                      </Box>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`,
+                      }}
+                    />
+
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <motion.div
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Box sx={{ mb: 3 }}>
+                          {feature.icon}
+                        </Box>
+                      </motion.div>
+
                       <Typography
                         variant="h5"
                         sx={{
@@ -338,84 +379,137 @@ const HomePage = () => {
                       </Typography>
                       <Typography
                         variant="body1"
-                        sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          lineHeight: 1.6,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3, // Ограничиваем до 3 строк
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
                       >
                         {feature.description}
                       </Typography>
                     </CardContent>
-                  </Card>
+                  </HoverCard>
                 </FadeInUp>
               </Grid>
             ))}
           </Grid>
         </Container>
-      </Box>
+      </Section>
 
       {/* CTA Section */}
-      <Box
+      <Section
+        gradient
+        theme={theme}
         sx={{
-          py: 6,
-          backgroundColor: theme.palette.background.paper,
           borderTop: `1px solid ${theme.palette.divider}`,
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Container maxWidth="md">
           <FadeInUp>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography
-                variant="h3"
+            <GlassCard sx={{ p: 6, textAlign: 'center', position: 'relative' }}>
+              <Box
                 sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  color: theme.palette.text.primary,
+                  position: 'absolute',
+                  top: -20,
+                  left: -20,
+                  width: 40,
+                  height: 40,
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  borderRadius: '50%',
+                  opacity: 0.3,
                 }}
-              >
-                Ready to Start Your Project?
-              </Typography>
-              <Typography
-                variant="h6"
+              />
+              <Box
                 sx={{
-                  mb: 4,
-                  color: theme.palette.text.secondary,
-                  lineHeight: 1.6,
-                  fontWeight: 400,
+                  position: 'absolute',
+                  bottom: -15,
+                  right: -15,
+                  width: 30,
+                  height: 30,
+                  background: `linear-gradient(45deg, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+                  borderRadius: '50%',
+                  opacity: 0.3,
                 }}
+              />
+
+              <motion.div
+                initial={{ scale: 0.9 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               >
-                Tell us about your idea and we'll help bring it to life. First consultation is free!
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <Button
-                  variant="contained"
-                  size="large"
-                  sx={{
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                  }}
-                  href="mailto:hello@sligart.studio"
+                <GradientText
+                  variant="h3"
+                  theme={theme}
+                  sx={{ mb: 2 }}
                 >
-                  Discuss Project
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  component={Link}
-                  to="/projects"
+                  Ready to Start Your Project?
+                </GradientText>
+
+                <Typography
+                  variant="h6"
                   sx={{
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
+                    mb: 4,
+                    color: theme.palette.text.secondary,
+                    lineHeight: 1.6,
+                    fontWeight: 400,
                   }}
                 >
-                  View Portfolio
-                </Button>
-              </Box>
-            </Box>
+                  Tell us about your idea and we'll help bring it to life. First consultation is free!
+                </Typography>
+
+                <FlexCenter gap={2} sx={{ flexWrap: 'wrap' }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <GradientButton
+                      theme={theme}
+                      size="large"
+                      sx={{
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                      }}
+                      href="mailto:hello@sligart.studio"
+                    >
+                      Discuss Project
+                    </GradientButton>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      component={Link}
+                      to="/projects"
+                      sx={{
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2,
+                          background: `${theme.palette.primary.main}10`,
+                        }
+                      }}
+                    >
+                      View Portfolio
+                    </Button>
+                  </motion.div>
+                </FlexCenter>
+              </motion.div>
+            </GlassCard>
           </FadeInUp>
         </Container>
-      </Box>
+      </Section>
     </Box>
   );
 };

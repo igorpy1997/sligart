@@ -1,4 +1,3 @@
-# app/server/routers/admin/developers.py
 from fastapi import APIRouter, HTTPException, Query, Request, Response, UploadFile, File, Form, Depends
 from sqlalchemy import select, func
 from typing import List, Optional
@@ -11,7 +10,6 @@ from services.r2_service import R2Service
 from settings import Settings
 
 router = APIRouter(prefix="/developers", tags=["admin-developers"])
-
 
 # Pydantic схемы
 class DeveloperResponse(BaseModel):
@@ -28,6 +26,7 @@ class DeveloperResponse(BaseModel):
     skills: Optional[List[str]] = None
     specialization: str
     is_active: bool
+    order_priority: int
     created_at: datetime
     updated_at: datetime
 
@@ -45,8 +44,9 @@ class DeveloperCreate(BaseModel):
     years_experience: int = 0
     hourly_rate: Optional[int] = None
     skills: Optional[List[str]] = None
-    specialization: str  # Обязательное поле
+    specialization: str
     is_active: bool = True
+    order_priority: int = 0
 
 class DeveloperUpdate(BaseModel):
     name: Optional[str] = None
@@ -61,6 +61,7 @@ class DeveloperUpdate(BaseModel):
     skills: Optional[List[str]] = None
     specialization: Optional[str] = None
     is_active: Optional[bool] = None
+    order_priority: Optional[int] = None
 
 def get_r2_service() -> R2Service:
     """Dependency для получения R2 сервиса"""
@@ -83,11 +84,12 @@ def developer_to_dict(dev):
         "skills": dev.skills or [],
         "specialization": dev.specialization,
         "is_active": dev.is_active,
+        "order_priority": dev.order_priority,
         "created_at": dev.created_at.isoformat(),
         "updated_at": dev.updated_at.isoformat()
     }
 
-@router.get("")
+@router.get("", response_model=List[DeveloperResponse])
 async def get_developers(
         request: Request,
         _start: int = Query(0),
@@ -99,11 +101,11 @@ async def get_developers(
         query = select(DBDeveloperModel)
 
         # Sorting
-        if hasattr(DBDeveloperModel, _sort):
-            if _order.upper() == "DESC":
-                query = query.order_by(getattr(DBDeveloperModel, _sort).desc())
-            else:
-                query = query.order_by(getattr(DBDeveloperModel, _sort))
+        sort_field = getattr(DBDeveloperModel, _sort) if hasattr(DBDeveloperModel, _sort) else DBDeveloperModel.id
+        if _order.upper() == "DESC":
+            query = query.order_by(sort_field.desc(), DBDeveloperModel.order_priority.desc())
+        else:
+            query = query.order_by(sort_field.asc(), DBDeveloperModel.order_priority.asc())
 
         # Get total count first
         count_query = select(func.count(DBDeveloperModel.id))
@@ -120,45 +122,16 @@ async def get_developers(
         developers_data = [developer_to_dict(dev) for dev in developers]
 
         # Calculate end index for Content-Range
-        actual_end = min(_start + len(developers_data) - 1, total - 1) if developers_data else _start - 1
+        actual_end = _start + len(developers_data)
 
+        # Возвращаем ответ с заголовком Content-Range
         return Response(
             content=json.dumps(developers_data),
-            headers={
-                "Content-Range": f"items {_start}-{actual_end}/{total}",
-                "Access-Control-Expose-Headers": "Content-Range"
-            },
-            media_type="application/json"
+            headers={"Content-Range": f"items {_start}-{actual_end}/{total}"}
         )
 
-@router.get("/{developer_id}")
+@router.get("/{developer_id}", response_model=DeveloperResponse)
 async def get_developer(developer_id: int, request: Request):
-    async with request.app.state.db_session() as db:
-        query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
-        result = await db.execute(query)
-        developer = result.scalar_one_or_none()
-
-        if not developer:
-            raise HTTPException(status_code=404, detail="Developer not found")
-
-        return developer_to_dict(developer)
-
-@router.post("")
-async def create_developer(developer: DeveloperCreate, request: Request):
-    async with request.app.state.db_session() as db:
-        db_developer = DBDeveloperModel(**developer.dict())
-        db.add(db_developer)
-        await db.commit()
-        await db.refresh(db_developer)
-
-        return developer_to_dict(db_developer)
-
-@router.put("/{developer_id}")
-async def update_developer(
-        developer_id: int,
-        developer: DeveloperUpdate,
-        request: Request
-):
     async with request.app.state.db_session() as db:
         query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
         result = await db.execute(query)
@@ -167,12 +140,44 @@ async def update_developer(
         if not db_developer:
             raise HTTPException(status_code=404, detail="Developer not found")
 
-        # Update fields
-        for field, value in developer.dict(exclude_unset=True).items():
-            setattr(db_developer, field, value)
+        return developer_to_dict(db_developer)
+
+@router.post("", response_model=DeveloperResponse)
+async def create_developer(developer: DeveloperCreate, request: Request):
+    async with request.app.state.db_session() as db:
+        email_check = await db.execute(select(DBDeveloperModel).where(DBDeveloperModel.email == developer.email))
+        if email_check.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already exists")
+
+        db_developer = DBDeveloperModel(**developer.dict())
+        db.add(db_developer)
+        await db.commit()
+        await db.refresh(db_developer)
+
+        return developer_to_dict(db_developer)
+
+@router.put("/{developer_id}", response_model=DeveloperResponse)
+async def update_developer(developer_id: int, developer_update: DeveloperUpdate, request: Request):
+    async with request.app.state.db_session() as db:
+        query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
+        result = await db.execute(query)
+        db_developer = result.scalar_one_or_none()
+
+        if not db_developer:
+            raise HTTPException(status_code=404, detail="Developer not found")
+
+        if developer_update.email and developer_update.email != db_developer.email:
+            email_check = await db.execute(select(DBDeveloperModel).where(DBDeveloperModel.email == developer_update.email))
+            if email_check.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Email already exists")
+
+        update_data = developer_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_developer, key, value)
 
         await db.commit()
         await db.refresh(db_developer)
+
         return developer_to_dict(db_developer)
 
 @router.delete("/{developer_id}")
@@ -189,7 +194,6 @@ async def delete_developer(
         if not db_developer:
             raise HTTPException(status_code=404, detail="Developer not found")
 
-        # Удаляем аватар если есть
         if db_developer.avatar_url:
             await r2_service.delete_avatar(db_developer.avatar_url)
 
@@ -204,15 +208,12 @@ async def delete_many_developers(
         ids: str = Query(..., description="Comma-separated list of IDs"),
         r2_service: R2Service = Depends(get_r2_service)
 ):
-    """Массовое удаление разработчиков"""
     async with request.app.state.db_session() as db:
-        # Парсим IDs
         try:
             developer_ids = [int(id.strip()) for id in ids.split(',')]
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid IDs format")
 
-        # Получаем разработчиков
         query = select(DBDeveloperModel).where(DBDeveloperModel.id.in_(developer_ids))
         result = await db.execute(query)
         developers = result.scalars().all()
@@ -220,12 +221,10 @@ async def delete_many_developers(
         if not developers:
             raise HTTPException(status_code=404, detail="No developers found")
 
-        # Удаляем аватары
         for developer in developers:
             if developer.avatar_url:
                 await r2_service.delete_avatar(developer.avatar_url)
 
-        # Удаляем разработчиков
         for developer in developers:
             await db.delete(developer)
 
@@ -236,8 +235,6 @@ async def delete_many_developers(
             "deleted_ids": [dev.id for dev in developers]
         }
 
-# ENDPOINTS ДЛЯ РАБОТЫ С АВАТАРАМИ
-
 @router.post("/{developer_id}/avatar")
 async def upload_avatar(
         developer_id: int,
@@ -245,9 +242,7 @@ async def upload_avatar(
         avatar: UploadFile = File(...),
         r2_service: R2Service = Depends(get_r2_service)
 ):
-    """Загружает аватар для разработчика"""
     async with request.app.state.db_session() as db:
-        # Проверяем что разработчик существует
         query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
         result = await db.execute(query)
         db_developer = result.scalar_one_or_none()
@@ -255,14 +250,10 @@ async def upload_avatar(
         if not db_developer:
             raise HTTPException(status_code=404, detail="Developer not found")
 
-        # Удаляем старый аватар если есть
         if db_developer.avatar_url:
             await r2_service.delete_avatar(db_developer.avatar_url)
 
-        # Загружаем новый аватар
         avatar_url = await r2_service.upload_avatar(avatar, developer_id)
-
-        # Обновляем запись в БД
         db_developer.avatar_url = avatar_url
         await db.commit()
         await db.refresh(db_developer)
@@ -279,7 +270,6 @@ async def delete_avatar(
         request: Request,
         r2_service: R2Service = Depends(get_r2_service)
 ):
-    """Удаляет аватар разработчика"""
     async with request.app.state.db_session() as db:
         query = select(DBDeveloperModel).where(DBDeveloperModel.id == developer_id)
         result = await db.execute(query)
@@ -291,10 +281,7 @@ async def delete_avatar(
         if not db_developer.avatar_url:
             raise HTTPException(status_code=404, detail="Developer has no avatar")
 
-        # Удаляем из R2
         await r2_service.delete_avatar(db_developer.avatar_url)
-
-        # Обновляем запись в БД
         db_developer.avatar_url = None
         await db.commit()
         await db.refresh(db_developer)

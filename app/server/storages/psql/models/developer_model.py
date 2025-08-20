@@ -20,6 +20,7 @@ class DBDeveloperModel(Base):
     skills: Mapped[list] = mapped_column(JSON, nullable=True)
     specialization: Mapped[str] = mapped_column(String(100), nullable=False, default="Full-Stack Developer")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    order_priority: Mapped[int] = mapped_column(Integer, default=0, nullable=True)  # Новое поле: порядок (меньше — выше)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

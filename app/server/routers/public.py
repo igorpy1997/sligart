@@ -1,4 +1,3 @@
-# app/server/routers/public.py
 from fastapi import APIRouter, Request, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -24,7 +23,7 @@ class PublicDeveloper(BaseModel):
     years_experience: int
     skills: Optional[List[str]] = None
     specialization: str
-    project_count: Optional[int] = None  # Количество проектов
+    project_count: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -38,9 +37,9 @@ class PublicProject(BaseModel):
     github_url: Optional[str] = None
     image_urls: Optional[List[str]] = None
     project_type: Optional[str] = None
-    category: Optional[str] = None  # Новое поле
+    category: Optional[str] = None
     duration_months: Optional[int] = None
-    developers: Optional[List[dict]] = None  # Информация о разработчиках
+    developers: Optional[List[dict]] = None
 
     class Config:
         from_attributes = True
@@ -71,6 +70,32 @@ class ServiceRequestResponse(BaseModel):
     message: str
     status: str
 
+def project_to_dict(project):
+    """Convert project model to dict with developers and photos"""
+    image_urls = [photo.photo_url for photo in project.photos] if project.photos else []
+
+    return {
+        "id": project.id,
+        "title": project.title,
+        "description": project.description,
+        "short_description": project.short_description,
+        "demo_url": project.demo_url,
+        "github_url": project.github_url,
+        "image_urls": image_urls,
+        "project_type": project.project_type,
+        "category": project.category,
+        "duration_months": project.duration_months,
+        "developers": [
+            {
+                "id": dev.id,
+                "name": dev.name,
+                "specialization": dev.specialization,
+                "avatar_url": dev.avatar_url
+            }
+            for dev in project.developers
+        ] if project.developers else []
+    }
+
 @router.get("/developers", response_model=List[PublicDeveloper])
 async def get_developers(
         request: Request,
@@ -84,12 +109,14 @@ async def get_developers(
         if active_only:
             query = query.where(DBDeveloperModel.is_active == True)
 
+        # Сортировка по order_priority ASC
+        query = query.order_by(DBDeveloperModel.order_priority.asc())
+
         query = query.limit(limit)
 
         result = await db.execute(query)
         developers = result.scalars().all()
 
-        # Преобразуем в PublicDeveloper с подсчетом проектов
         response_data = []
         for dev in developers:
             dev_data = PublicDeveloper.from_orm(dev)
@@ -122,9 +149,8 @@ async def get_developer_projects(
         request: Request,
         limit: int = 20
 ):
-    """Get projects for a specific developer"""
+    """Get projects for a developer"""
     async with request.app.state.db_session() as db:
-        # Проверяем что разработчик существует
         dev_query = select(DBDeveloperModel).where(
             DBDeveloperModel.id == developer_id,
             DBDeveloperModel.is_active == True
@@ -135,10 +161,12 @@ async def get_developer_projects(
         if not developer:
             raise HTTPException(status_code=404, detail="Developer not found")
 
-        # Получаем проекты разработчика
         project_query = (
             select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
+            .options(
+                selectinload(DBProjectModel.developers),
+                selectinload(DBProjectModel.photos)
+            )
             .join(DBProjectModel.developers)
             .where(
                 DBDeveloperModel.id == developer_id,
@@ -151,17 +179,7 @@ async def get_developer_projects(
         project_result = await db.execute(project_query)
         projects = project_result.scalars().all()
 
-        # Преобразуем в PublicProject
-        response_data = []
-        for project in projects:
-            project_data = PublicProject.from_orm(project)
-            project_data.developers = [
-                {"id": dev.id, "name": dev.name, "specialization": dev.specialization}
-                for dev in project.developers
-            ]
-            response_data.append(project_data)
-
-        return response_data
+        return [project_to_dict(project) for project in projects]
 
 @router.get("/projects", response_model=List[PublicProject])
 async def get_projects(
@@ -172,7 +190,10 @@ async def get_projects(
         limit: int = 12
 ):
     async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).options(selectinload(DBProjectModel.developers)).where(DBProjectModel.status == "active")
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.developers),
+            selectinload(DBProjectModel.photos)
+        ).where(DBProjectModel.status == "active")
 
         if featured_only:
             query = query.where(DBProjectModel.featured == True)
@@ -188,28 +209,15 @@ async def get_projects(
         result = await db.execute(query)
         projects = result.scalars().all()
 
-        # Преобразуем в PublicProject с информацией о разработчиках
-        response_data = []
-        for project in projects:
-            project_dict = project.__dict__.copy()  # Копируем атрибуты проекта
-            project_dict["developers"] = [
-                {
-                    "id": dev.id,
-                    "name": dev.name,
-                    "specialization": dev.specialization,
-                    "avatar_url": dev.avatar_url
-                }
-                for dev in project.developers
-            ] if project.developers else []
-            project_data = PublicProject.model_validate(project_dict, from_attributes=True)
-            response_data.append(project_data)
-
-        return response_data
+        return [project_to_dict(project) for project in projects]
 
 @router.get("/projects/{project_id}", response_model=PublicProject)
 async def get_project(project_id: int, request: Request):
     async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).options(selectinload(DBProjectModel.developers)).where(
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.developers),
+            selectinload(DBProjectModel.photos)
+        ).where(
             DBProjectModel.id == project_id,
             DBProjectModel.status == "active"
         )
@@ -219,23 +227,7 @@ async def get_project(project_id: int, request: Request):
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        # Преобразуем данные проекта в словарь, включая разработчиков
-        project_dict = project.__dict__.copy()  # Копируем атрибуты проекта
-        project_dict["developers"] = [
-            {
-                "id": dev.id,
-                "name": dev.name,
-                "specialization": dev.specialization,
-                "avatar_url": dev.avatar_url,
-                "github_url": dev.github_url,
-                "linkedin_url": dev.linkedin_url
-            }
-            for dev in project.developers
-        ] if project.developers else []
-
-        # Валидируем словарь с помощью Pydantic v2
-        project_data = PublicProject.model_validate(project_dict, from_attributes=True)
-        return project_data
+        return project_to_dict(project)
 
 @router.get("/projects/categories/list")
 async def get_project_categories(request: Request):
@@ -300,7 +292,6 @@ async def submit_contact_form(
 ):
     """Submit a service request / contact form"""
     async with request.app.state.db_session() as db:
-        # Create new service request
         db_service_request = DBServiceRequestModel(
             **service_request.dict(),
             status="new",
@@ -323,22 +314,18 @@ async def get_public_stats(request: Request):
     async with request.app.state.db_session() as db:
         from sqlalchemy import func
 
-        # Count active developers
         dev_query = select(func.count(DBDeveloperModel.id)).where(DBDeveloperModel.is_active == True)
         dev_result = await db.execute(dev_query)
         developers_count = dev_result.scalar()
 
-        # Count active projects
         proj_query = select(func.count(DBProjectModel.id)).where(DBProjectModel.status == "active")
         proj_result = await db.execute(proj_query)
         projects_count = proj_result.scalar()
 
-        # Count completed service requests
         sr_query = select(func.count(DBServiceRequestModel.id)).where(DBServiceRequestModel.status == "completed")
         sr_result = await db.execute(sr_query)
         completed_requests = sr_result.scalar()
 
-        # Count projects by category for homepage
         cat_query = select(
             DBProjectModel.category,
             func.count(DBProjectModel.id).label("count")

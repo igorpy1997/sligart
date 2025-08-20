@@ -1,11 +1,13 @@
-// frontend/sligart-admin/src/components/admin/developers.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   List, Datagrid, TextField, EmailField, NumberField, BooleanField, DateField,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
-  Filter, SearchInput, SelectInput, ImageField, ImageInput
+  Filter, SearchInput, SelectInput, ImageField, ImageInput, useDataProvider
 } from 'react-admin';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Box } from '@mui/material';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 const DeveloperFilter = (props) => (
   <Filter {...props}>
@@ -82,21 +84,91 @@ const AvatarInput = (props) => {
   );
 };
 
-export const DeveloperList = (props) => (
-  <List {...props} filters={<DeveloperFilter />} perPage={25}>
-    <Datagrid rowClick="show">
-      <TextField source="id" />
-      <AvatarField label="Avatar" />
-      <TextField source="name" />
-      <EmailField source="email" />
-      <TextField source="specialization" />
-      <NumberField source="years_experience" />
-      <NumberField source="hourly_rate" />
-      <BooleanField source="is_active" />
-      <DateField source="created_at" />
-    </Datagrid>
-  </List>
-);
+export const DeveloperList = (props) => {
+  const dataProvider = useDataProvider();
+  const [developers, setDevelopers] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Загрузка developers с сортировкой по order_priority
+  const fetchDevelopers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await dataProvider.getList('developers', {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: 'order_priority', order: 'ASC' },
+        filter: {},
+      });
+      setDevelopers(data);
+    } catch (error) {
+      console.error('Error fetching developers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevelopers();
+  }, []);
+
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const reorderedDevelopers = Array.from(developers);
+    const [movedDeveloper] = reorderedDevelopers.splice(result.source.index, 1);
+    reorderedDevelopers.splice(result.destination.index, 0, movedDeveloper);
+
+    // Обновляем order_priority (0,1,2...)
+    const updatedDevelopers = reorderedDevelopers.map((dev, index) => ({
+      id: dev.id,
+      order_priority: index,
+    }));
+
+    setDevelopers(reorderedDevelopers); // Локально обновляем
+
+    // Отправляем обновления в API
+    try {
+      await dataProvider.updateMany('developers', { ids: updatedDevelopers.map(d => d.id), data: updatedDevelopers });
+      console.log('Order updated successfully');
+    } catch (error) {
+      console.error('Error updating order:', error);
+      fetchDevelopers(); // Если ошибка, перезагружаем
+    }
+  };
+
+  return (
+    <List {...props} filters={<DeveloperFilter />} perPage={25}>
+      {loading ? (
+        <div>Loading...</div>
+      ) : (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="developer-list">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef}>
+                <Datagrid bulkActionButtons={false} rowClick="show">
+                  <TextField source="id" />
+                  <AvatarField label="Avatar" />
+                  <TextField source="name" />
+                  <EmailField source="email" />
+                  <TextField source="specialization" />
+                  <NumberField source="years_experience" />
+                  <NumberField source="hourly_rate" />
+                  <NumberField source="order_priority" label="Order Priority" />
+                  <BooleanField source="is_active" />
+                  <DateField source="created_at" />
+                  {/* Добавляем колонку для перетаскивания */}
+                  <Box>
+                    <DragIndicatorIcon sx={{ cursor: 'grab' }} />
+                  </Box>
+                </Datagrid>
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
+    </List>
+  );
+};
 
 export const DeveloperEdit = (props) => (
   <Edit {...props}>
@@ -108,9 +180,8 @@ export const DeveloperEdit = (props) => (
       <TextInput source="github_url" />
       <TextInput source="linkedin_url" />
       <TextInput source="portfolio_url" />
-      <NumberInput source="years_experience" />
+      <NumberInput source="years_experience" defaultValue={0} />
       <NumberInput source="hourly_rate" />
-
       <SelectInput
         source="specialization"
         choices={[
@@ -127,13 +198,13 @@ export const DeveloperEdit = (props) => (
         ]}
         required
       />
-
       <ArrayInput source="skills">
         <SimpleFormIterator>
           <TextInput source="" label="Skill" />
         </SimpleFormIterator>
       </ArrayInput>
       <BooleanInput source="is_active" />
+      <NumberInput source="order_priority" label="Order Priority (lower = higher in list)" defaultValue={0} />
     </SimpleForm>
   </Edit>
 );
@@ -150,7 +221,6 @@ export const DeveloperCreate = (props) => (
       <TextInput source="portfolio_url" />
       <NumberInput source="years_experience" defaultValue={0} />
       <NumberInput source="hourly_rate" />
-
       <SelectInput
         source="specialization"
         choices={[
@@ -168,13 +238,13 @@ export const DeveloperCreate = (props) => (
         defaultValue="Full-Stack Developer"
         required
       />
-
       <ArrayInput source="skills">
         <SimpleFormIterator>
           <TextInput source="" label="Skill" />
         </SimpleFormIterator>
       </ArrayInput>
       <BooleanInput source="is_active" defaultValue={true} />
+      <NumberInput source="order_priority" label="Order Priority (lower = higher in list)" defaultValue={0} />
     </SimpleForm>
   </Create>
 );
@@ -211,6 +281,7 @@ export const DeveloperShow = (props) => (
       <NumberField source="hourly_rate" />
       <TextField source="specialization" />
       <SkillsField label="Skills" />
+      <NumberField source="order_priority" label="Order Priority" />
       <BooleanField source="is_active" />
       <DateField source="created_at" />
       <DateField source="updated_at" />
