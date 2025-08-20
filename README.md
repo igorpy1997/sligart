@@ -31,6 +31,10 @@ R2_BUCKET_NAME=your-bucket-name
 R2_PUBLIC_URL=https://pub-your-bucket-id.r2.dev
 ```
 
+**Important:** Configure Caddy domain format in `caddy/Caddyfile`:
+- **For ngrok**: Use `{$NGROK_DOMAIN}:80` (forces HTTP)
+- **For own domain without SSL**: Use `{$NGROK_DOMAIN}` (enables automatic HTTPS)
+
 **Note:** You'll need to:
 - Register for Cloudflare R2 storage service
 - Use your own domain or create a free ngrok tunnel
