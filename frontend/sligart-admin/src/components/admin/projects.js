@@ -42,12 +42,15 @@ const DevelopersField = ({ record }) => (
   </div>
 );
 
-// Простой компонент для загрузки фотографий с кнопкой
+// В файле frontend/sligart-admin/src/components/admin/projects.js
+
+// Улучшенный компонент для загрузки фотографий с защитой от race condition
 const SimplePhotoUploader = () => {
   const record = useRecordContext();
   const notify = useNotify();
   const refresh = useRefresh();
   const [uploading, setUploading] = useState(false);
+  const [uploadQueue, setUploadQueue] = useState([]); // Очередь загрузки
 
   const handleFileUpload = async (event) => {
     const files = event.target.files;
@@ -59,15 +62,22 @@ const SimplePhotoUploader = () => {
       return;
     }
 
+    // Проверяем, что не идет другая загрузка
+    if (uploading) {
+      notify('⏳ Please wait for current upload to finish', { type: 'warning' });
+      return;
+    }
+
     setUploading(true);
 
     try {
+      console.log(`🚀 Uploading ${files.length} photos for project ${record.id}`);
+
+      // Создаем FormData ОДИН РАЗ для всех файлов
       const formData = new FormData();
       Array.from(files).forEach((file) => {
         formData.append('photos', file);
       });
-
-      console.log(`🚀 Uploading ${files.length} photos for project ${record.id}`);
 
       const response = await fetch(`/api/admin/projects/${record.id}/photos`, {
         method: 'POST',
@@ -79,8 +89,16 @@ const SimplePhotoUploader = () => {
 
       if (response.ok) {
         const result = await response.json();
-        notify(`✅ Uploaded ${result.uploaded_urls?.length || files.length} photos!`, { type: 'success' });
-        refresh(); // Обновляем страницу
+        console.log('📸 Upload result:', result);
+
+        notify(`✅ Uploaded ${result.uploaded_urls?.length || files.length} photos! Total: ${result.total_images}`, {
+          type: 'success'
+        });
+
+        // Небольшая задержка перед обновлением для гарантии записи в БД
+        setTimeout(() => {
+          refresh();
+        }, 500);
       } else {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -102,6 +120,12 @@ const SimplePhotoUploader = () => {
       return;
     }
 
+    // Проверяем, что не идет загрузка
+    if (uploading) {
+      notify('⏳ Please wait for upload to finish before deleting', { type: 'warning' });
+      return;
+    }
+
     try {
       console.log(`🗑️ Deleting photo: ${photoUrl}`);
 
@@ -114,7 +138,9 @@ const SimplePhotoUploader = () => {
 
       if (response.ok) {
         notify('🗑️ Photo deleted successfully', { type: 'success' });
-        refresh();
+        setTimeout(() => {
+          refresh();
+        }, 300);
       } else {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -138,6 +164,7 @@ const SimplePhotoUploader = () => {
       <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <PhotoLibraryIcon />
         Manage Project Photos
+        {uploading && <span style={{ color: '#ff9800' }}>⏳ Uploading...</span>}
       </Typography>
 
       {/* Текущие фотографии */}
@@ -165,6 +192,7 @@ const SimplePhotoUploader = () => {
                     onClick={() => handleDeletePhoto(url)}
                     size="small"
                     title="Delete photo"
+                    disabled={uploading}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -195,11 +223,18 @@ const SimplePhotoUploader = () => {
             accept="image/*"
             onChange={handleFileUpload}
             style={{ display: 'none' }}
+            disabled={uploading}
           />
         </Button>
         <Typography variant="caption" display="block" color="text.secondary">
-          Select multiple image files to upload
+          Select multiple image files to upload. Wait for each upload to complete.
         </Typography>
+
+        {uploading && (
+          <Typography variant="caption" display="block" sx={{ color: '#ff9800', mt: 1 }}>
+            ⚠️ Upload in progress. Please wait before adding more photos.
+          </Typography>
+        )}
       </Box>
     </Box>
   );

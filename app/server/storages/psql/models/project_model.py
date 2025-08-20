@@ -1,6 +1,7 @@
-# app/server/storages/psql/models/project_model.py
+# ОБНОВИ app/server/storages/psql/models/project_model.py
+
 from datetime import datetime
-from sqlalchemy import DateTime, Integer, String, Text, Boolean, JSON, ForeignKey, Table, Column
+from sqlalchemy import DateTime, Integer, String, Text, Boolean, ForeignKey, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from storages.psql.base import Base
 
@@ -21,7 +22,10 @@ class DBProjectModel(Base):
     short_description: Mapped[str] = mapped_column(String(500), nullable=True)
     demo_url: Mapped[str] = mapped_column(String(500), nullable=True)
     github_url: Mapped[str] = mapped_column(String(500), nullable=True)
-    image_urls: Mapped[list] = mapped_column(JSON, nullable=True)
+
+    # УБИРАЕМ JSON поле image_urls - теперь фотки в отдельной таблице
+    # image_urls: Mapped[list] = mapped_column(JSON, nullable=True)  # УДАЛЯЕМ ЭТО
+
     status: Mapped[str] = mapped_column(String(50), default="active", nullable=False)
     featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     project_type: Mapped[str] = mapped_column(String(50), nullable=True)
@@ -36,6 +40,14 @@ class DBProjectModel(Base):
         "DBDeveloperModel",
         secondary=project_developers,
         back_populates="projects",
+    )
+
+    # НОВАЯ СВЯЗЬ: one-to-many с фотографиями
+    photos: Mapped[list["DBProjectPhotoModel"]] = relationship(
+        "DBProjectPhotoModel",
+        back_populates="project",
+        cascade="all, delete-orphan",  # При удалении проекта удаляются все фотки
+        order_by="DBProjectPhotoModel.order_index"  # Сортировка по порядку
     )
 
     def __repr__(self) -> str:

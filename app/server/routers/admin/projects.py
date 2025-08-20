@@ -1,4 +1,4 @@
-# app/server/routers/admin/projects.py
+# app/server/routers/admin/projects.py - ПОЛНАЯ ВЕРСИЯ С ОТДЕЛЬНОЙ ТАБЛИЦЕЙ ФОТОК
 from fastapi import APIRouter, HTTPException, Query, Request, Response, UploadFile, File, Depends
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -8,13 +8,14 @@ from datetime import datetime
 import json
 
 from storages.psql.models.project_model import DBProjectModel
+from storages.psql.models.project_photo_model import DBProjectPhotoModel  # НОВЫЙ ИМПОРТ
 from services.r2_service import R2Service
 from settings import Settings
 
 router = APIRouter(prefix="/projects", tags=["admin-projects"])
 
 
-# Pydantic схемы
+# Pydantic схемы - ОБНОВЛЕННЫЕ
 class ProjectResponse(BaseModel):
     id: int
     title: str
@@ -22,14 +23,14 @@ class ProjectResponse(BaseModel):
     short_description: Optional[str] = None
     demo_url: Optional[str] = None
     github_url: Optional[str] = None
-    image_urls: Optional[List[str]] = None
+    image_urls: Optional[List[str]] = None  # Теперь генерируется из photos
     status: str
     featured: bool
     project_type: Optional[str] = None
-    category: Optional[str] = None  # Новое поле
+    category: Optional[str] = None
     duration_months: Optional[int] = None
     budget_range: Optional[str] = None
-    developer_ids: Optional[List[int]] = None  # ID разработчиков
+    developer_ids: Optional[List[int]] = None
     created_at: datetime
     updated_at: datetime
 
@@ -42,7 +43,6 @@ class ProjectCreate(BaseModel):
     short_description: Optional[str] = None
     demo_url: Optional[str] = None
     github_url: Optional[str] = None
-    image_urls: Optional[List[str]] = None
     status: str = "draft"
     featured: bool = False
     project_type: Optional[str] = None
@@ -57,7 +57,6 @@ class ProjectUpdate(BaseModel):
     short_description: Optional[str] = None
     demo_url: Optional[str] = None
     github_url: Optional[str] = None
-    image_urls: Optional[List[str]] = None
     status: Optional[str] = None
     featured: Optional[bool] = None
     project_type: Optional[str] = None
@@ -72,7 +71,10 @@ def get_r2_service() -> R2Service:
     return R2Service(settings)
 
 def project_to_dict(project):
-    """Convert project model to dict with developers"""
+    """Convert project model to dict with developers and photos"""
+    # Собираем URL фоток из связанной таблицы
+    image_urls = [photo.photo_url for photo in project.photos] if project.photos else []
+
     return {
         "id": project.id,
         "title": project.title,
@@ -80,7 +82,7 @@ def project_to_dict(project):
         "short_description": project.short_description,
         "demo_url": project.demo_url,
         "github_url": project.github_url,
-        "image_urls": project.image_urls or [],
+        "image_urls": image_urls,  # Теперь из отдельной таблицы
         "status": project.status,
         "featured": project.featured,
         "project_type": project.project_type,
@@ -99,12 +101,15 @@ async def get_projects(
         _end: int = Query(10),
         _sort: str = Query("id"),
         _order: str = Query("ASC"),
-        category: Optional[str] = Query(None),  # Фильтр по категории
+        category: Optional[str] = Query(None),
 ):
     async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).options(selectinload(DBProjectModel.developers))
+        # ВАЖНО: загружаем фотки через selectinload
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.developers),
+            selectinload(DBProjectModel.photos)  # ЗАГРУЖАЕМ ФОТКИ
+        )
 
-        # Фильтр по категории
         if category:
             query = query.where(DBProjectModel.category == category)
 
@@ -146,7 +151,10 @@ async def get_projects(
 @router.get("/{project_id}")
 async def get_project(project_id: int, request: Request):
     async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).options(selectinload(DBProjectModel.developers)).where(DBProjectModel.id == project_id)
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.developers),
+            selectinload(DBProjectModel.photos)  # ЗАГРУЖАЕМ ФОТКИ
+        ).where(DBProjectModel.id == project_id)
         result = await db.execute(query)
         project = result.scalar_one_or_none()
 
@@ -155,6 +163,110 @@ async def get_project(project_id: int, request: Request):
 
         return project_to_dict(project)
 
+# НОВЫЙ ПРОСТОЙ ENDPOINT ДЛЯ ЗАГРУЗКИ ФОТОК - БЕЗ ЕБУЧИХ JSON
+@router.post("/{project_id}/photos")
+async def upload_project_photos(
+        project_id: int,
+        request: Request,
+        photos: List[UploadFile] = File(...),
+        r2_service: R2Service = Depends(get_r2_service)
+):
+    """Загружает фотографии для проекта В ОТДЕЛЬНУЮ ТАБЛИЦУ"""
+    async with request.app.state.db_session() as db:
+        # Проверяем что проект существует
+        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
+        result = await db.execute(query)
+        db_project = result.scalar_one_or_none()
+
+        if not db_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        uploaded_urls = []
+
+        # Получаем текущий максимальный order_index
+        max_order_query = select(func.max(DBProjectPhotoModel.order_index)).where(
+            DBProjectPhotoModel.project_id == project_id
+        )
+        max_order_result = await db.execute(max_order_query)
+        max_order = max_order_result.scalar() or 0
+
+        # Загружаем каждое фото
+        for i, photo in enumerate(photos, 1):
+            try:
+                print(f"📸 Uploading photo {i}/{len(photos)}: {photo.filename}")
+
+                # Загружаем в R2
+                photo_url = await r2_service.upload_project_screenshot(photo, project_id)
+                uploaded_urls.append(photo_url)
+                print(f"📸 UPLOADED: {photo_url}")
+
+                # СОЗДАЕМ ЗАПИСЬ В ТАБЛИЦЕ ФОТОК
+                db_photo = DBProjectPhotoModel(
+                    project_id=project_id,
+                    photo_url=photo_url,
+                    photo_name=photo.filename,
+                    order_index=max_order + i
+                )
+                db.add(db_photo)
+                print(f"📸 ADDED TO DB: {photo_url}")
+
+            except Exception as e:
+                print(f"Failed to upload photo: {e}")
+
+        # Коммитим все новые фотки
+        await db.commit()
+
+        # Считаем общее количество фоток проекта
+        count_query = select(func.count(DBProjectPhotoModel.id)).where(
+            DBProjectPhotoModel.project_id == project_id
+        )
+        count_result = await db.execute(count_query)
+        total_photos = count_result.scalar()
+
+        return {
+            "message": f"Uploaded {len(uploaded_urls)} photos",
+            "uploaded_urls": uploaded_urls,
+            "total_images": total_photos
+        }
+
+@router.delete("/{project_id}/photos")
+async def delete_project_photo(
+        project_id: int,
+        request: Request,
+        photo_url: str = Query(..., description="URL of photo to delete"),
+        r2_service: R2Service = Depends(get_r2_service)
+):
+    """Удаляет конкретную фотографию проекта"""
+    async with request.app.state.db_session() as db:
+        # Находим фото в БД
+        photo_query = select(DBProjectPhotoModel).where(
+            DBProjectPhotoModel.project_id == project_id,
+            DBProjectPhotoModel.photo_url == photo_url
+        )
+        photo_result = await db.execute(photo_query)
+        db_photo = photo_result.scalar_one_or_none()
+
+        if not db_photo:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        # Удаляем из R2
+        await r2_service.delete_project_screenshot(photo_url)
+
+        # Удаляем из БД
+        await db.delete(db_photo)
+        await db.commit()
+
+        # Считаем оставшиеся фотки
+        count_query = select(func.count(DBProjectPhotoModel.id)).where(
+            DBProjectPhotoModel.project_id == project_id
+        )
+        count_result = await db.execute(count_query)
+        remaining_photos = count_result.scalar()
+
+        return {
+            "message": "Photo deleted successfully",
+            "remaining_images": remaining_photos
+        }
 
 @router.delete("/{project_id}")
 async def delete_project(
@@ -163,18 +275,21 @@ async def delete_project(
         r2_service: R2Service = Depends(get_r2_service)
 ):
     async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
+        # Загружаем проект с фотками
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.photos)
+        ).where(DBProjectModel.id == project_id)
         result = await db.execute(query)
         db_project = result.scalar_one_or_none()
 
         if not db_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        # Удаляем все фото проекта из R2
-        if db_project.image_urls:
-            for image_url in db_project.image_urls:
-                await r2_service.delete_project_screenshot(image_url)
+        # Удаляем все фото из R2
+        for photo in db_project.photos:
+            await r2_service.delete_project_screenshot(photo.photo_url)
 
+        # Удаляем проект (фотки удалятся автоматически через cascade)
         await db.delete(db_project)
         await db.commit()
 
@@ -193,20 +308,22 @@ async def delete_many_projects(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid IDs format")
 
-        query = select(DBProjectModel).where(DBProjectModel.id.in_(project_ids))
+        # Загружаем проекты с фотками
+        query = select(DBProjectModel).options(
+            selectinload(DBProjectModel.photos)
+        ).where(DBProjectModel.id.in_(project_ids))
         result = await db.execute(query)
         projects = result.scalars().all()
 
         if not projects:
             raise HTTPException(status_code=404, detail="No projects found")
 
-        # Удаляем все фото проектов
+        # Удаляем все фото проектов из R2
         for project in projects:
-            if project.image_urls:
-                for image_url in project.image_urls:
-                    await r2_service.delete_project_screenshot(image_url)
+            for photo in project.photos:
+                await r2_service.delete_project_screenshot(photo.photo_url)
 
-        # Удаляем проекты
+        # Удаляем проекты (фотки удалятся автоматически через cascade)
         for project in projects:
             await db.delete(project)
 
@@ -215,86 +332,6 @@ async def delete_many_projects(
         return {
             "message": f"Deleted {len(projects)} projects",
             "deleted_ids": [proj.id for proj in projects]
-        }
-
-# ENDPOINTS ДЛЯ РАБОТЫ С ФОТОГРАФИЯМИ ПРОЕКТОВ
-
-# В файле app/server/routers/admin/projects.py
-
-# ЗАМЕНИ ЭТОТ ENDPOINT:
-@router.post("/{project_id}/photos")
-async def upload_project_photos(
-        project_id: int,
-        request: Request,
-        photos: List[UploadFile] = File(...),
-        r2_service: R2Service = Depends(get_r2_service)
-):
-    """Загружает фотографии для проекта"""
-    async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
-        result = await db.execute(query)
-        db_project = result.scalar_one_or_none()
-
-        if not db_project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        uploaded_urls = []
-        # ВАЖНО: Получаем текущие изображения, чтобы НЕ перезаписать их
-        current_images = db_project.image_urls or []
-
-        # Загружаем каждое фото
-        for photo in photos:
-            try:
-                photo_url = await r2_service.upload_project_screenshot(photo, project_id)
-                uploaded_urls.append(photo_url)
-                # ДОБАВЛЯЕМ к существующим, а не заменяем!
-                current_images.append(photo_url)
-            except Exception as e:
-                # Если одно фото не загрузилось, продолжаем с остальными
-                print(f"Failed to upload photo: {e}")
-
-        # Обновляем список изображений в БД (ДОБАВИЛИ новые к старым)
-        db_project.image_urls = current_images
-        await db.commit()
-        await db.refresh(db_project)
-
-        return {
-            "message": f"Uploaded {len(uploaded_urls)} photos",
-            "uploaded_urls": uploaded_urls,
-            "total_images": len(current_images)  # Общее количество фотографий
-        }
-
-@router.delete("/{project_id}/photos")
-async def delete_project_photo(
-        project_id: int,
-        request: Request,
-        photo_url: str = Query(..., description="URL of photo to delete"),
-        r2_service: R2Service = Depends(get_r2_service)
-):
-    """Удаляет конкретную фотографию проекта"""
-    async with request.app.state.db_session() as db:
-        query = select(DBProjectModel).where(DBProjectModel.id == project_id)
-        result = await db.execute(query)
-        db_project = result.scalar_one_or_none()
-
-        if not db_project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        if not db_project.image_urls or photo_url not in db_project.image_urls:
-            raise HTTPException(status_code=404, detail="Photo not found in project")
-
-        # Удаляем из R2
-        await r2_service.delete_project_screenshot(photo_url)
-
-        # Удаляем из списка в БД
-        updated_images = [url for url in db_project.image_urls if url != photo_url]
-        db_project.image_urls = updated_images
-        await db.commit()
-        await db.refresh(db_project)
-
-        return {
-            "message": "Photo deleted successfully",
-            "remaining_images": len(updated_images)
         }
 
 # ENDPOINTS ДЛЯ ПОЛУЧЕНИЯ КАТЕГОРИЙ И СТАТИСТИКИ
@@ -323,9 +360,7 @@ async def get_projects_stats_by_category(request: Request):
 
         return {"by_category": stats}
 
-# app/server/routers/admin/projects.py
-# Заменяем функцию create_project
-
+# CREATE PROJECT
 @router.post("")
 async def create_project(project: ProjectCreate, request: Request):
     async with request.app.state.db_session() as db:
@@ -356,7 +391,10 @@ async def create_project(project: ProjectCreate, request: Request):
         # Загружаем проект с связями для ответа
         fresh_query = (
             select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
+            .options(
+                selectinload(DBProjectModel.developers),
+                selectinload(DBProjectModel.photos)
+            )
             .where(DBProjectModel.id == db_project.id)
         )
         fresh_result = await db.execute(fresh_query)
@@ -364,14 +402,17 @@ async def create_project(project: ProjectCreate, request: Request):
 
         return project_to_dict(fresh_project)
 
-
+# UPDATE PROJECT
 @router.put("/{project_id}")
 async def update_project(project_id: int, project: ProjectUpdate, request: Request):
     async with request.app.state.db_session() as db:
         # Загружаем проект
         query = (
             select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
+            .options(
+                selectinload(DBProjectModel.developers),
+                selectinload(DBProjectModel.photos)
+            )
             .where(DBProjectModel.id == project_id)
         )
         result = await db.execute(query)
@@ -411,7 +452,10 @@ async def update_project(project_id: int, project: ProjectUpdate, request: Reque
         # Заново загружаем проект с обновленными связями
         fresh_query = (
             select(DBProjectModel)
-            .options(selectinload(DBProjectModel.developers))
+            .options(
+                selectinload(DBProjectModel.developers),
+                selectinload(DBProjectModel.photos)
+            )
             .where(DBProjectModel.id == project_id)
         )
         fresh_result = await db.execute(fresh_query)
