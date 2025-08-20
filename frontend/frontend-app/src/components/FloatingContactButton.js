@@ -1,8 +1,8 @@
-// frontend/frontend-app/src/components/FloatingContactButton.js
+// frontend/frontend-app/src/components/FloatingContactButton.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { Fab, Tooltip, useTheme, GlobalStyles } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import EmailIcon from '@mui/icons-material/Email'; // ПОМЕНЯЛИ ИКОНКУ
 import ContactForm from './ContactForm';
 
 const FloatingContactButton = () => {
@@ -107,7 +107,7 @@ const FloatingContactButton = () => {
             }}
           >
             <Tooltip
-              title="💬 Let's Talk!"
+              title="📝 Contact Us!"  // ПОМЕНЯЛИ ТЕКСТ ПОДСКАЗКИ
               placement="left"
               arrow
               PopperProps={{
@@ -147,6 +147,13 @@ const FloatingContactButton = () => {
                 whileTap={{ scale: 0.95 }}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
+                style={{
+                  borderRadius: '50%', // ДЕЛАЕМ КОНТЕЙНЕР КРУГЛЫМ
+                  overflow: 'hidden',  // ОБРЕЗАЕМ ВСЁ ЧТО ВЫХОДИТ ЗА ГРАНИЦЫ
+                  background: 'transparent', // ПРОЗРАЧНЫЙ ФОН
+                  width: 64,
+                  height: 64,
+                }}
               >
                 <Fab
                   color="primary"
@@ -162,18 +169,29 @@ const FloatingContactButton = () => {
                     outline: 'none',
                     position: 'relative',
                     overflow: 'visible',
+                    borderRadius: '50% !important', // ПРИНУДИТЕЛЬНО КРУГЛАЯ
+                    color: '#FFFFFF', // ЯВНО ЗАДАЕМ БЕЛЫЙ ЦВЕТ ИКОНКИ
                     '&:hover': {
                       background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
                       boxShadow: `0 12px 35px ${theme.palette.primary.main}50`,
                       transform: 'translateY(-2px)',
+                      color: '#FFFFFF', // УБЕЖДАЕМСЯ ЧТО ЦВЕТ НЕ МЕНЯЕТСЯ
                     },
                     '&:active': {
                       boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
                       transform: 'translateY(0px)',
+                      color: '#FFFFFF',
                     },
                     '&:focus': {
                       outline: 'none',
                       boxShadow: `0 8px 25px ${theme.palette.primary.main}40`,
+                      color: '#FFFFFF',
+                    },
+                    '&:before': {
+                      display: 'none', // УБИРАЕМ ПСЕВДОЭЛЕМЕНТЫ
+                    },
+                    '&:after': {
+                      display: 'none', // УБИРАЕМ ПСЕВДОЭЛЕМЕНТЫ
                     },
                     transition: 'all 0.2s ease-in-out',
                   }}
@@ -190,7 +208,10 @@ const FloatingContactButton = () => {
                       ease: "easeInOut"
                     }}
                   >
-                    <QuestionAnswerIcon sx={{ fontSize: 28, color: 'white' }} />
+                    <EmailIcon sx={{
+                      fontSize: 28,
+                      color: '#FFFFFF !important'  // ПРИНУДИТЕЛЬНО БЕЛЫЙ ЦВЕТ
+                    }} />
                   </motion.div>
                 </Fab>
               </motion.div>

@@ -1,4 +1,4 @@
-// frontend/frontend-app/src/components/ContactForm.js
+// frontend/frontend-app/src/components/ContactForm.js - ИСПРАВЛЕННАЯ ВЕРСИЯ БЕЗ ДВОЙНЫХ СКРОЛЛ-БАРОВ
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -44,7 +44,7 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  // Добавляем глобальные стили для скролл-бара
+  // Добавляем глобальные стили для красивого кастомного скролл-бара
   const scrollbarStyles = (
     <GlobalStyles
       styles={{
@@ -211,6 +211,7 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
 
   return (
     <>
+      {/* ВОЗВРАЩАЕМ КАСТОМНЫЕ СТИЛИ СКРОЛЛ-БАРА */}
       {scrollbarStyles}
       <Dialog
         open={open}
@@ -223,7 +224,9 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
             borderRadius: isMobile ? 0 : 3,
             maxHeight: isMobile ? '100vh' : '90vh',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            // УБИРАЕМ ДЕФОЛТНЫЙ СКРОЛЛ У DIALOG
+            overflow: 'hidden',
           }
         }}
       >
@@ -231,7 +234,8 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        pb: 1
+        pb: 1,
+        flexShrink: 0, // НЕ СЖИМАЕТСЯ
       }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
@@ -250,15 +254,22 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
         </IconButton>
       </DialogTitle>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {/* КОНТЕНТ С КАСТОМНЫМ СКРОЛЛОМ */}
         <DialogContent
           className="custom-scrollbar"
           sx={{
             pt: 2,
             flex: 1,
-            overflowY: 'auto',
-            maxHeight: isMobile ? 'calc(100vh - 200px)' : '70vh',
-            px: { xs: 2, sm: 3 }
+            px: { xs: 2, sm: 3 },
+            pb: 0, // УБИРАЕМ НИЖНИЙ ОТСТУП
+            // ЯВНО ВКЛЮЧАЕМ СКРОЛЛ С КАСТОМНЫМИ СТИЛЯМИ
+            overflowY: 'scroll',
+            overflowX: 'hidden',
+            // ОГРАНИЧИВАЕМ ВЫСОТУ ЧТОБЫ КНОПКИ ВСЕГДА БЫЛИ ВИДНЫ
+            maxHeight: isMobile
+              ? 'calc(100vh - 160px)' // МЕСТО ДЛЯ HEADER + КНОПОК
+              : 'calc(90vh - 160px)',   // МЕСТО ДЛЯ HEADER + КНОПОК
           }}
         >
           {error && (
@@ -378,6 +389,7 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
             {/* What We Offer */}
             <Box sx={{
               p: 3,
+              mb: 2, // ДОБАВЛЯЕМ ОТСТУП СНИЗУ ЧТОБЫ КНОПКИ НЕ ПЕРЕКРЫВАЛИ
               backgroundColor: theme.palette.primary.main + '08',
               borderRadius: 2,
               border: `1px solid ${theme.palette.primary.main}20`
@@ -409,7 +421,17 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, pt: 2 }}>
+        {/* КНОПКИ ВНИЗУ - ВСЕГДА ВИДНЫ */}
+        <DialogActions sx={{
+          p: 3,
+          pt: 2,
+          flexShrink: 0, // НЕ СЖИМАЕТСЯ
+          position: 'sticky', // ПРИЛИПАЕТ К НИЗУ
+          bottom: 0,
+          backgroundColor: theme.palette.background.paper, // БЕЛЫЙ ФОН
+          borderTop: `1px solid ${theme.palette.divider}`, // ВИЗУАЛЬНОЕ РАЗДЕЛЕНИЕ
+          zIndex: 1, // ПОВЕРХ КОНТЕНТА
+        }}>
           <Button
             onClick={handleClose}
             disabled={loading}
@@ -425,8 +447,13 @@ const ContactForm = ({ open, onClose, initialProjectType = '' }) => {
               px: 4,
               py: 1.5,
               background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+              color: '#FFFFFF !important', // ПРИНУДИТЕЛЬНО БЕЛЫЙ ТЕКСТ
               '&:hover': {
                 background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                color: '#FFFFFF !important', // И ПРИ ХОВЕРЕ ТОЖЕ
+              },
+              '&:disabled': {
+                color: 'rgba(255, 255, 255, 0.6) !important', // ДАЖЕ КОГДА DISABLED
               }
             }}
           >
