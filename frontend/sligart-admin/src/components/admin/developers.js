@@ -3,11 +3,25 @@ import {
   List, Datagrid, TextField, EmailField, NumberField, BooleanField, DateField,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
-  Filter, SearchInput, SelectInput, ImageField, ImageInput, useDataProvider
+  Filter, SearchInput, SelectInput, ImageField, ImageInput, useDataProvider,
+  useNotify, useRefresh, Loading
 } from 'react-admin';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Box } from '@mui/material';
+import {
+  Box,
+  Paper,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Typography,
+  Chip,
+  IconButton
+} from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const DeveloperFilter = (props) => (
   <Filter {...props}>
@@ -59,6 +73,224 @@ const AvatarField = ({ record }) => (
   )
 );
 
+// Кастомный компонент списка с drag and drop
+const DraggableDeveloperList = () => {
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [developers, setDevelopers] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Загрузка developers с сортировкой по order_priority
+  const fetchDevelopers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await dataProvider.getList('developers', {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: 'order_priority', order: 'ASC' },
+        filter: {},
+      });
+      console.log('📥 Loaded developers:', data);
+      setDevelopers(data);
+    } catch (error) {
+      console.error('❌ Error fetching developers:', error);
+      notify('Error loading developers', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevelopers();
+  }, []);
+
+  const onDragEnd = async (result) => {
+    console.log('🎯 Drag ended:', result);
+
+    if (!result.destination) {
+      console.log('❌ No destination');
+      return;
+    }
+
+    if (result.source.index === result.destination.index) {
+      console.log('❌ Same position');
+      return;
+    }
+
+    // Создаем новый массив с переставленными элементами
+    const reorderedDevelopers = Array.from(developers);
+    const [movedDeveloper] = reorderedDevelopers.splice(result.source.index, 1);
+    reorderedDevelopers.splice(result.destination.index, 0, movedDeveloper);
+
+    // Обновляем order_priority для всех элементов
+    const updatedDevelopers = reorderedDevelopers.map((dev, index) => ({
+      ...dev,
+      order_priority: index,
+    }));
+
+    console.log('📝 Updated order:', updatedDevelopers.map(d => ({ id: d.id, name: d.name, order: d.order_priority })));
+
+    // Локально обновляем состояние для мгновенного отклика
+    setDevelopers(updatedDevelopers);
+
+    // Отправляем обновления в API
+    try {
+      // Обновляем каждого разработчика отдельно
+      for (const dev of updatedDevelopers) {
+        await dataProvider.update('developers', {
+          id: dev.id,
+          data: { order_priority: dev.order_priority },
+          previousData: dev
+        });
+      }
+
+      console.log('✅ Order updated successfully');
+      notify('Developer order updated!', { type: 'success' });
+
+      // Перезагружаем данные через небольшое время
+      setTimeout(() => {
+        refresh();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Error updating order:', error);
+      notify('Failed to update order', { type: 'error' });
+      // Если ошибка, возвращаем к исходному состоянию
+      fetchDevelopers();
+    }
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  return (
+    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <Typography variant="h6" sx={{ p: 2 }}>
+        🎯 Developers (Drag to Reorder)
+      </Typography>
+
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="developer-list">
+          {(provided, snapshot) => (
+            <Table
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              sx={{
+                backgroundColor: snapshot.isDraggingOver ? '#f5f5f5' : 'white',
+              }}
+            >
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: 50 }}>🎯</TableCell>
+                  <TableCell sx={{ width: 60 }}>ID</TableCell>
+                  <TableCell sx={{ width: 80 }}>Avatar</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Specialization</TableCell>
+                  <TableCell sx={{ width: 100 }}>Experience</TableCell>
+                  <TableCell sx={{ width: 100 }}>Rate</TableCell>
+                  <TableCell sx={{ width: 80 }}>Order</TableCell>
+                  <TableCell sx={{ width: 80 }}>Active</TableCell>
+                  <TableCell sx={{ width: 120 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {developers.map((developer, index) => (
+                  <Draggable
+                    key={developer.id}
+                    draggableId={developer.id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <TableRow
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        sx={{
+                          backgroundColor: snapshot.isDragging ? '#e3f2fd' : 'white',
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                          },
+                        }}
+                      >
+                        <TableCell
+                          {...provided.dragHandleProps}
+                          sx={{
+                            cursor: 'grab',
+                            '&:active': { cursor: 'grabbing' },
+                            textAlign: 'center',
+                          }}
+                        >
+                          <DragIndicatorIcon color="action" />
+                        </TableCell>
+                        <TableCell>{developer.id}</TableCell>
+                        <TableCell>
+                          <AvatarField record={developer} />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {developer.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {developer.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={developer.specialization}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>{developer.years_experience} years</TableCell>
+                        <TableCell>
+                          {developer.hourly_rate ? `$${developer.hourly_rate}/h` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={developer.order_priority}
+                            size="small"
+                            color="primary"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={developer.is_active ? 'Active' : 'Inactive'}
+                            size="small"
+                            color={developer.is_active ? 'success' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => window.location.href = `#/developers/${developer.id}/show`}
+                            title="View"
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => window.location.href = `#/developers/${developer.id}`}
+                            title="Edit"
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </TableBody>
+            </Table>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </Paper>
+  );
+};
+
 // Кастомный инпут для загрузки аватара
 const AvatarInput = (props) => {
   return (
@@ -85,88 +317,10 @@ const AvatarInput = (props) => {
 };
 
 export const DeveloperList = (props) => {
-  const dataProvider = useDataProvider();
-  const [developers, setDevelopers] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  // Загрузка developers с сортировкой по order_priority
-  const fetchDevelopers = async () => {
-    setLoading(true);
-    try {
-      const { data } = await dataProvider.getList('developers', {
-        pagination: { page: 1, perPage: 100 },
-        sort: { field: 'order_priority', order: 'ASC' },
-        filter: {},
-      });
-      setDevelopers(data);
-    } catch (error) {
-      console.error('Error fetching developers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDevelopers();
-  }, []);
-
-  const onDragEnd = async (result) => {
-    if (!result.destination) return;
-
-    const reorderedDevelopers = Array.from(developers);
-    const [movedDeveloper] = reorderedDevelopers.splice(result.source.index, 1);
-    reorderedDevelopers.splice(result.destination.index, 0, movedDeveloper);
-
-    // Обновляем order_priority (0,1,2...)
-    const updatedDevelopers = reorderedDevelopers.map((dev, index) => ({
-      id: dev.id,
-      order_priority: index,
-    }));
-
-    setDevelopers(reorderedDevelopers); // Локально обновляем
-
-    // Отправляем обновления в API
-    try {
-      await dataProvider.updateMany('developers', { ids: updatedDevelopers.map(d => d.id), data: updatedDevelopers });
-      console.log('Order updated successfully');
-    } catch (error) {
-      console.error('Error updating order:', error);
-      fetchDevelopers(); // Если ошибка, перезагружаем
-    }
-  };
-
   return (
-    <List {...props} filters={<DeveloperFilter />} perPage={25}>
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="developer-list">
-            {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef}>
-                <Datagrid bulkActionButtons={false} rowClick="show">
-                  <TextField source="id" />
-                  <AvatarField label="Avatar" />
-                  <TextField source="name" />
-                  <EmailField source="email" />
-                  <TextField source="specialization" />
-                  <NumberField source="years_experience" />
-                  <NumberField source="hourly_rate" />
-                  <NumberField source="order_priority" label="Order Priority" />
-                  <BooleanField source="is_active" />
-                  <DateField source="created_at" />
-                  {/* Добавляем колонку для перетаскивания */}
-                  <Box>
-                    <DragIndicatorIcon sx={{ cursor: 'grab' }} />
-                  </Box>
-                </Datagrid>
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
-    </List>
+    <Box sx={{ p: 2 }}>
+      <DraggableDeveloperList />
+    </Box>
   );
 };
 
