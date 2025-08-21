@@ -4,7 +4,7 @@ import {
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, ArrayInput, SimpleFormIterator,
   Create, Show, SimpleShowLayout, ArrayField, SingleFieldList, ChipField,
   Filter, SearchInput, SelectInput, ImageField, ImageInput, useDataProvider,
-  useNotify, useRefresh, Loading
+  useNotify, useRefresh, Loading, CreateButton, TopToolbar
 } from 'react-admin';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import {
@@ -73,6 +73,13 @@ const AvatarField = ({ record }) => (
   )
 );
 
+// Кастомный топ бар с кнопкой создания
+const DeveloperListActions = () => (
+  <TopToolbar>
+    <CreateButton />
+  </TopToolbar>
+);
+
 // Кастомный компонент списка с drag and drop
 const DraggableDeveloperList = () => {
   const dataProvider = useDataProvider();
@@ -90,10 +97,10 @@ const DraggableDeveloperList = () => {
         sort: { field: 'order_priority', order: 'ASC' },
         filter: {},
       });
-      console.log('📥 Loaded developers:', data);
+      console.log('Loaded developers:', data);
       setDevelopers(data);
     } catch (error) {
-      console.error('❌ Error fetching developers:', error);
+      console.error('Error fetching developers:', error);
       notify('Error loading developers', { type: 'error' });
     } finally {
       setLoading(false);
@@ -105,15 +112,15 @@ const DraggableDeveloperList = () => {
   }, []);
 
   const onDragEnd = async (result) => {
-    console.log('🎯 Drag ended:', result);
+    console.log('Drag ended:', result);
 
     if (!result.destination) {
-      console.log('❌ No destination');
+      console.log('No destination');
       return;
     }
 
     if (result.source.index === result.destination.index) {
-      console.log('❌ Same position');
+      console.log('Same position');
       return;
     }
 
@@ -128,7 +135,7 @@ const DraggableDeveloperList = () => {
       order_priority: index,
     }));
 
-    console.log('📝 Updated order:', updatedDevelopers.map(d => ({ id: d.id, name: d.name, order: d.order_priority })));
+    console.log('Updated order:', updatedDevelopers.map(d => ({ id: d.id, name: d.name, order: d.order_priority })));
 
     // Локально обновляем состояние для мгновенного отклика
     setDevelopers(updatedDevelopers);
@@ -144,7 +151,7 @@ const DraggableDeveloperList = () => {
         });
       }
 
-      console.log('✅ Order updated successfully');
+      console.log('Order updated successfully');
       notify('Developer order updated!', { type: 'success' });
 
       // Перезагружаем данные через небольшое время
@@ -152,7 +159,7 @@ const DraggableDeveloperList = () => {
         refresh();
       }, 1000);
     } catch (error) {
-      console.error('❌ Error updating order:', error);
+      console.error('Error updating order:', error);
       notify('Failed to update order', { type: 'error' });
       // Если ошибка, возвращаем к исходному состоянию
       fetchDevelopers();
@@ -166,7 +173,7 @@ const DraggableDeveloperList = () => {
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
       <Typography variant="h6" sx={{ p: 2 }}>
-        🎯 Developers (Drag to Reorder)
+        Developers (Drag to Reorder)
       </Typography>
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -181,7 +188,7 @@ const DraggableDeveloperList = () => {
             >
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: 50 }}>🎯</TableCell>
+                  <TableCell sx={{ width: 50 }}>Drag</TableCell>
                   <TableCell sx={{ width: 60 }}>ID</TableCell>
                   <TableCell sx={{ width: 80 }}>Avatar</TableCell>
                   <TableCell>Name</TableCell>
@@ -318,9 +325,11 @@ const AvatarInput = (props) => {
 
 export const DeveloperList = (props) => {
   return (
-    <Box sx={{ p: 2 }}>
-      <DraggableDeveloperList />
-    </Box>
+    <List {...props} actions={<DeveloperListActions />} filters={<DeveloperFilter />}>
+      <Box sx={{ p: 2 }}>
+        <DraggableDeveloperList />
+      </Box>
+    </List>
   );
 };
 
