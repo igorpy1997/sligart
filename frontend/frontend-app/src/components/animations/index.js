@@ -1,15 +1,6 @@
-// src/components/animations/index.js
-export {
-  FadeInUp,
-  FadeInLeft,
-  FadeInRight,
-  ScaleIn,
-  StaggerContainer,
-  FloatingElement,
-  TypewriterText,
-  HoverCard,
-  MagneticButton,
-  ParallaxElement,
-  MorphingBackground,
-  AnimatedCounter,
-} from './animations';
+export { default as FadeInUp } from './FadeInUp';
+export { default as FadeInLeft } from './FadeInLeft';
+export { default as FadeInRight } from './FadeInRight';
+export { default as ScaleIn } from './ScaleIn';
+export { default as StaggerContainer } from './StaggerContainer';
+export { default as AnimatedCounter } from './AnimatedCounter';
