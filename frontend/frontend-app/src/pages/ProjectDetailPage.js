@@ -1,6 +1,7 @@
-// frontend/frontend-app/src/pages/ProjectDetailPage.js - ПОЛНАЯ ВЕРСИЯ С ФОРМОЙ
-import React, { useState, useEffect } from 'react';
+// frontend/frontend-app/src/pages/ProjectDetailPage.js - ПРАВИЛЬНАЯ ВЕРСИЯ
+import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Container,
@@ -24,85 +25,83 @@ import EmailIcon from '@mui/icons-material/Email';
 import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 import { motion } from 'framer-motion';
 
+// Redux
+import {
+  fetchProjectById,
+  fetchRelatedProjects,
+  clearCurrentProject,
+  selectCurrentProject,
+  selectRelatedProjects,
+  selectProjectsLoading,
+  selectProjectsError
+} from '../store/slices/projectsSlice';
+
+import { openForm } from '../store/slices/contactSlice';
+
+// Components
 import { FadeInUp, FadeInLeft, FadeInRight } from '../components/animations';
-import ProjectGallery from '../components/ProjectGallery';
-// ИМПОРТЫ ДЛЯ ФОРМЫ
-import ContactForm from '../components/ContactForm';
-import { useContactForm } from '../hooks/useContactForm';
+import { ProjectGallery, ContactForm } from '../components';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const theme = useTheme();
-  const [project, setProject] = useState(null);
-  const [relatedProjects, setRelatedProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // ХУК ДЛЯ ФОРМЫ
-  const { isOpen, openForm, closeForm } = useContactForm();
+  const project = useSelector(selectCurrentProject);
+  const relatedProjects = useSelector(selectRelatedProjects);
+  const loading = useSelector(selectProjectsLoading);
+  const error = useSelector(selectProjectsError);
 
   useEffect(() => {
-    const loadProjectData = async () => {
-      try {
-        setLoading(true);
-
-        // Load project details
-        const projectResponse = await fetch(`/api/public/projects/${projectId}`);
-        if (!projectResponse.ok) {
-          throw new Error('Project not found');
-        }
-        const projectData = await projectResponse.json();
-        console.log('Project Data:', projectData);
-        setProject(projectData);
-
-        // Load related projects (same category)
-        if (projectData.category) {
-          const relatedResponse = await fetch(`/api/public/projects?category=${projectData.category}&limit=6`);
-          if (relatedResponse.ok) {
-            const relatedData = await relatedResponse.json();
-            console.log('Related Projects:', relatedData);
-            const filtered = relatedData.filter(p => p.id !== parseInt(projectId));
-            setRelatedProjects(filtered.slice(0, 3));
-          }
-        }
-
-      } catch (err) {
-        console.error('Error loading project:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (projectId) {
       loadProjectData();
     }
-  }, [projectId]);
 
-  // ФУНКЦИИ ДЛЯ ОТКРЫТИЯ ФОРМЫ
+    return () => {
+      dispatch(clearCurrentProject());
+    };
+  }, [projectId, dispatch]);
+
+  const loadProjectData = async () => {
+    try {
+      const result = await dispatch(fetchProjectById(projectId)).unwrap();
+
+      // Load related projects if project has category
+      if (result.category) {
+        dispatch(fetchRelatedProjects({
+          category: result.category,
+          excludeId: projectId,
+          limit: 6
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading project:', err);
+    }
+  };
+
   const handleDiscussSimilarProject = () => {
-    openForm({
+    dispatch(openForm({
       project_type: project?.project_type || 'web',
       description: `I'm interested in a project similar to "${project?.title}". `,
       source: `project_detail_${project?.id}`
-    });
+    }));
   };
 
   const handleGetQuote = () => {
-    openForm({
+    dispatch(openForm({
       project_type: project?.project_type || 'web',
       description: `I need a quote for a project similar to "${project?.title}". Please provide details about timeline and pricing. `,
       source: `project_sidebar_${project?.id}`
-    });
+    }));
   };
 
   const handleStartSimilarProject = () => {
-    openForm({
+    dispatch(openForm({
       project_type: project?.project_type || 'web',
       description: `I want to start a project similar to "${project?.title}". `,
       source: `project_cta_${project?.id}`
-    });
+    }));
   };
 
   const getCategoryDisplayName = (category) => {
@@ -298,7 +297,7 @@ const ProjectDetailPage = () => {
                                 component={Link}
                                 to={`/developer/${slug}`}
                                 color="inherit"
-                                underline="hover"
+                                style={{ textDecoration: 'none' }}
                               >
                                 {dev.name}
                               </Typography>
@@ -447,7 +446,7 @@ const ProjectDetailPage = () => {
                             component={Link}
                             to={`/project/${relatedProject.id}`}
                             color="inherit"
-                            underline="hover"
+                            style={{ textDecoration: 'none' }}
                           >
                             {relatedProject.title}
                           </Typography>
@@ -620,12 +619,7 @@ const ProjectDetailPage = () => {
         </FadeInUp>
       </Container>
 
-      {/* ФОРМА ОБРАТНОЙ СВЯЗИ */}
-      <ContactForm
-        open={isOpen}
-        onClose={closeForm}
-        initialProjectType={project?.project_type || ''}
-      />
+      <ContactForm />
     </Box>
   );
 };

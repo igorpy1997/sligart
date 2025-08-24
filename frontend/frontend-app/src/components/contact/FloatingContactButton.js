@@ -1,17 +1,20 @@
-// frontend/frontend-app/src/components/FloatingContactButton.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// frontend/frontend-app/src/components/contact/FloatingContactButton.js - WITH REDUX
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { Fab, Tooltip, useTheme, GlobalStyles } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import EmailIcon from '@mui/icons-material/Email'; // ПОМЕНЯЛИ ИКОНКУ
-import ContactForm from './ContactForm';
+import EmailIcon from '@mui/icons-material/Email';
+
+// Redux
+import { openForm } from '../../store/slices/contactSlice';
 
 const FloatingContactButton = () => {
   const theme = useTheme();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const dispatch = useDispatch();
   const [isVisible, setIsVisible] = useState(false);
   const [isPulsing, setIsPulsing] = useState(true);
 
-  // Встроенные стили для анимации
+  // Animation styles
   const animationStyles = (
     <GlobalStyles
       styles={{
@@ -48,39 +51,40 @@ const FloatingContactButton = () => {
     />
   );
 
-  // Показываем кнопку после небольшой задержки
+  // Show button after delay
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 2000); // Появляется через 2 секунды после загрузки
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Останавливаем пульсацию через некоторое время
+  // Stop pulsing after some time
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(() => {
         setIsPulsing(false);
-      }, 10000); // Пульсирует 10 секунд
+      }, 10000);
 
       return () => clearTimeout(timer);
     }
   }, [isVisible]);
 
-  // Возобновляем пульсацию при наведении
   const handleMouseEnter = () => {
     setIsPulsing(true);
   };
 
   const handleMouseLeave = () => {
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       setIsPulsing(false);
     }, 3000);
   };
 
   const handleClick = () => {
-    setIsFormOpen(true);
+    dispatch(openForm({
+      source: 'floating_button'
+    }));
     setIsPulsing(false);
   };
 
@@ -107,7 +111,7 @@ const FloatingContactButton = () => {
             }}
           >
             <Tooltip
-              title="📝 Contact Us!"  // ПОМЕНЯЛИ ТЕКСТ ПОДСКАЗКИ
+              title="📝 Contact Us!"
               placement="left"
               arrow
               PopperProps={{
@@ -148,9 +152,9 @@ const FloatingContactButton = () => {
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 style={{
-                  borderRadius: '50%', // ДЕЛАЕМ КОНТЕЙНЕР КРУГЛЫМ
-                  overflow: 'hidden',  // ОБРЕЗАЕМ ВСЁ ЧТО ВЫХОДИТ ЗА ГРАНИЦЫ
-                  background: 'transparent', // ПРОЗРАЧНЫЙ ФОН
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'transparent',
                   width: 64,
                   height: 64,
                 }}
@@ -169,13 +173,13 @@ const FloatingContactButton = () => {
                     outline: 'none',
                     position: 'relative',
                     overflow: 'visible',
-                    borderRadius: '50% !important', // ПРИНУДИТЕЛЬНО КРУГЛАЯ
-                    color: '#FFFFFF', // ЯВНО ЗАДАЕМ БЕЛЫЙ ЦВЕТ ИКОНКИ
+                    borderRadius: '50% !important',
+                    color: '#FFFFFF',
                     '&:hover': {
                       background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
                       boxShadow: `0 12px 35px ${theme.palette.primary.main}50`,
                       transform: 'translateY(-2px)',
-                      color: '#FFFFFF', // УБЕЖДАЕМСЯ ЧТО ЦВЕТ НЕ МЕНЯЕТСЯ
+                      color: '#FFFFFF',
                     },
                     '&:active': {
                       boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
@@ -186,12 +190,6 @@ const FloatingContactButton = () => {
                       outline: 'none',
                       boxShadow: `0 8px 25px ${theme.palette.primary.main}40`,
                       color: '#FFFFFF',
-                    },
-                    '&:before': {
-                      display: 'none', // УБИРАЕМ ПСЕВДОЭЛЕМЕНТЫ
-                    },
-                    '&:after': {
-                      display: 'none', // УБИРАЕМ ПСЕВДОЭЛЕМЕНТЫ
                     },
                     transition: 'all 0.2s ease-in-out',
                   }}
@@ -210,14 +208,14 @@ const FloatingContactButton = () => {
                   >
                     <EmailIcon sx={{
                       fontSize: 28,
-                      color: '#FFFFFF !important'  // ПРИНУДИТЕЛЬНО БЕЛЫЙ ЦВЕТ
+                      color: '#FFFFFF !important'
                     }} />
                   </motion.div>
                 </Fab>
               </motion.div>
             </Tooltip>
 
-            {/* Дополнительные анимированные кольца для привлечения внимания */}
+            {/* Additional animated rings */}
             {isPulsing && (
               <>
                 <motion.div
@@ -272,11 +270,6 @@ const FloatingContactButton = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <ContactForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-      />
     </>
   );
 };
